@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CQA Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --paper:#fcfcfd; --bg-2:#f7f7f9; --bg-3:#f0f0f4; --line:#ebebf0; --line-2:#dfdfe6;
+  --ink:#14141f; --ink-2:#464657; --ink-3:#83839a; --ink-4:#b6b6c6;
+  --acc:#4338ca; --acc-2:#eef0ff; --acc-3:#c7cbfb; --acc-ring:rgba(67,56,202,.2);
+  --yes:#15803d; --yes-bg:#ecfdf3; --yes-fill:#22a05a; --part:#b45309; --part-bg:#fff6e5; --part-fill:#e9a23b; --no:#dc2626; --no-bg:#fef1f1; --no-fill:#e5484d;
+  --na:#2563eb; --na-bg:#eef4ff; --gross:#8f1414; --gross-bg:#fbeaea;
+  --serif:'Newsreader',Georgia,serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:14px/1.55 Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);font-feature-settings:"tnum","cv11";-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+kbd{font:500 10.5px/1 var(--mono);color:var(--ink-3);border:1px solid var(--line-2);border-radius:4px;padding:2px 5px;background:#fff}
+.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--acc-ring);outline-offset:2px;border-radius:4px}
+.app{display:grid;grid-template-rows:56px 1fr;height:100vh}
+.nav{display:flex;align-items:center;gap:20px;padding:0 28px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.9)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:-.01em}
+.brand i{width:20px;height:20px;border-radius:50%;background:conic-gradient(from 200deg,var(--acc),#818cf8,var(--acc));box-shadow:inset 0 0 0 5px #fff,0 0 0 1px var(--acc-3)}
+.tabs{display:flex;gap:2px}
+.tabs a{padding:6px 10px;border-radius:6px;color:var(--ink-3);text-decoration:none;font-size:13.5px}
+.tabs a.on{color:var(--ink);background:var(--bg-2)}
+.tabs a:hover{color:var(--ink)}
+.nav-r{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{white-space:nowrap;height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:13px;background:#fff;transition:background .15s,border-color .15s,box-shadow .15s}
+.btn:hover{background:var(--bg-2)}
+.btn-pri{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 1px 2px rgba(67,56,202,.3)}
+.btn-pri:hover{background:#3730a3}
+.btn-ghost{border-color:transparent}
+.k-btn{color:var(--ink-3);width:250px;justify-content:space-between}
+.body{display:grid;grid-template-columns:1fr 432px;min-height:0}
+.doc{overflow:auto;scroll-behavior:smooth}
+.doc-in{display:grid;grid-template-columns:176px minmax(0,760px);gap:48px;padding:36px 48px 120px 40px}
+.toc{position:sticky;top:36px;align-self:start;font-size:12.5px}
+.toc h6{font:500 11px Inter;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.toc a{display:flex;align-items:center;gap:8px;padding:4px 0;color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.toc a:hover{color:var(--acc)}
+.toc a .d{width:7px;height:7px;border-radius:50%;flex:none}
+.toc a .n{font:11px var(--mono);color:var(--ink-4);width:14px}
+.toc hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.toc .rv{margin-left:auto;font-size:10px;color:var(--part)}
+
+.eyebrow{display:flex;gap:10px;align-items:center;color:var(--ink-3);font-size:12.5px}
+.eyebrow .sep{width:3px;height:3px;border-radius:50%;background:var(--ink-4)}
+.eyebrow .mono{color:var(--ink-2)}
+h1{font:500 34px/1.15 var(--serif);letter-spacing:-.015em;margin:12px 0 14px;max-width:24ch}
+.lede{font:400 18px/1.55 var(--serif);color:var(--ink-2);max-width:62ch}
+
+.hero{margin-top:28px;border:1px solid var(--line);border-radius:14px;display:grid;grid-template-columns:1.35fr 1fr;overflow:hidden;background:linear-gradient(180deg,#fff,var(--paper))}
+.hero-l{padding:22px 24px 20px}
+.hero-r{padding:22px 24px 20px;border-left:1px solid var(--line)}
+.lbl{font:500 11px Inter;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.score-line{display:flex;align-items:baseline;gap:10px;margin-top:8px}
+.big{font:500 64px/1 var(--serif);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.big sup{font-size:26px;vertical-align:top;position:relative;top:6px;letter-spacing:0;color:var(--ink-2)}
+.of{color:var(--ink-4);font-size:15px}
+.after{margin-left:auto;text-align:right;font-size:12.5px;color:var(--ink-3);line-height:1.5}
+.after b{display:block;font:500 20px var(--serif);color:var(--acc)}
+.wbar{display:flex;gap:3px;height:12px;margin:18px 0 8px}
+.wseg{position:relative;border-radius:3px;background:repeating-linear-gradient(135deg,var(--bg-3) 0 3px,#fff 3px 6px);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;cursor:pointer;transition:transform .15s}
+.wseg:hover{transform:scaleY(1.35)}
+.wseg i{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.wlegend{display:flex;gap:3px;font-size:10.5px;color:var(--ink-3)}
+.wlegend span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--mono)}
+.verdicts{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.vchip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--line)}
+.vchip.gross{background:var(--gross);color:#fff;border-color:var(--gross)}
+.vchip.rev{background:var(--part-bg);color:var(--part);border-color:#f5ddb0}
+.vchip.ok{background:var(--yes-bg);color:var(--yes);border-color:#c9ebd6}
+.secs{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.sec{display:grid;grid-template-columns:1fr 40px;gap:4px 10px;font-size:12.5px;color:var(--ink-2)}
+.sec b{font:500 12.5px var(--mono);text-align:right}
+.sec .bar{grid-column:1/-1;height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden}
+.sec .bar i{display:block;height:100%;border-radius:2px}
+.dist{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.dist-h{display:flex;justify-content:space-between;align-items:baseline}
+.dist-h span{font-size:11.5px;color:var(--ink-3)}
+.hist{display:flex;align-items:flex-end;gap:4px;height:64px;margin-top:22px;position:relative}
+.hist i{flex:1;background:#dcdffb;border-radius:3px 3px 0 0;min-height:3px;position:relative}
+.hist i.me{background:var(--acc)}
+.hist i.me::after{content:"этот";position:absolute;top:-17px;left:50%;transform:translateX(-50%);font:500 10px Inter;color:var(--acc)}
+.hist-x{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--ink-4);margin-top:4px}
+.meta-row{display:flex;gap:14px;margin-top:16px;font-size:11.5px;white-space:nowrap;color:var(--ink-3);flex-wrap:wrap}
+.meta-row .mono{color:var(--ink-2);font-size:11.5px}
+
+h2{font:500 24px/1.2 var(--serif);letter-spacing:-.01em;display:flex;align-items:baseline;gap:12px;margin:52px 0 6px}
+h2 .sc{font:500 13px var(--mono);color:var(--ink-3)}
+.h2-sub{color:var(--ink-3);font-size:13px;margin-bottom:8px}
+.item{display:grid;grid-template-columns:44px 1fr;gap:0 4px;padding:22px 0;border-top:1px solid var(--line);scroll-margin-top:20px}
+.item-n{font:400 26px/1 var(--serif);color:var(--ink-4);padding-top:2px}
+.item-h{display:flex;align-items:center;gap:10px}
+.item-h h3{font:600 15.5px Inter;letter-spacing:-.01em}
+.item-h .w{font:11.5px var(--mono);color:var(--ink-4)}
+.item-h .r{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:6px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.p-yes{background:var(--yes-bg);color:var(--yes)} .p-no{background:var(--no-bg);color:var(--no)} .p-part{background:var(--part-bg);color:var(--part)} .p-na{background:var(--na-bg);color:var(--na)} .p-gross{background:var(--gross);color:#fff} .p-ok{background:var(--bg-3);color:var(--ink-3)}
+.pts{font:500 13px var(--mono);min-width:54px;text-align:right}
+.pts small{color:var(--ink-4)}
+.item p.exp{margin-top:8px;color:var(--ink-2);max-width:64ch}
+.ref{font:500 11px/1 var(--mono);color:var(--acc);background:var(--acc-2);border-radius:4px;padding:3px 5px;vertical-align:1px;transition:background .12s}
+.ref:hover{background:var(--acc-3)}
+.quotes{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.q{display:grid;grid-template-columns:auto 1fr;gap:12px;text-align:left;padding:2px 0 2px 14px;border-left:2px solid var(--acc-3);transition:border-color .15s}
+.q:hover{border-left-color:var(--acc)}
+.q blockquote{font:italic 400 16px/1.45 var(--serif);color:var(--ink)}
+.q .who{font:11px var(--mono);color:var(--ink-3);padding-top:3px;white-space:nowrap}
+.foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:14px;font-size:12px;color:var(--ink-3)}
+.cons{display:inline-flex;gap:3px;vertical-align:-1px;margin-right:4px}
+.cons i{width:8px;height:8px;border-radius:50%;background:var(--ink-2)}
+.cons i.x{background:#fff;box-shadow:inset 0 0 0 1.5px var(--part)}
+.cons.rev i:not(.x){background:var(--part)}
+.foot .rv{color:var(--part);font-weight:500}
+.linkbtn{margin-left:auto;color:var(--acc);font-weight:500;display:inline-flex;gap:6px;align-items:center;padding:4px 8px;border-radius:6px;transition:background .12s}
+.linkbtn:hover{background:var(--acc-2)}
+.na-note{margin-top:8px;font-size:13px;color:var(--na);background:var(--na-bg);padding:8px 12px;border-radius:8px;max-width:64ch}
+.appeal{margin-top:14px;border:1px solid var(--acc-3);border-radius:12px;padding:16px;background:linear-gradient(180deg,#fafaff,#fff);box-shadow:0 8px 24px -12px rgba(67,56,202,.25);animation:in .18s ease}
+@keyframes in{from{opacity:0;transform:translateY(-4px)}}
+.appeal .lbl{display:block;margin-bottom:8px}
+.opts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.opts button{height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:#fff;font-size:13px}
+.opts button.on{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring);font-weight:500}
+.appeal textarea{width:100%;height:64px;border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;font:13.5px/1.45 Inter;resize:none}
+.appeal textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-ring)}
+.appeal-f{display:flex;gap:8px;align-items:center;margin-top:10px}
+.appeal-f .delta{margin-left:auto;font:12.5px var(--mono);color:var(--ink-3)}
+.trail{display:flex;align-items:stretch;gap:0;margin-top:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-width:520px}
+.trail div{flex:1;padding:9px 14px;font-size:13px;position:relative}
+.trail div+div{border-left:1px solid var(--line)}
+.trail span{display:block;font:500 10.5px Inter;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.trail .fin{background:var(--acc-2)}
+.trail .fin b{color:var(--acc)}
+.trail-note{font-size:12.5px;color:var(--ink-3);margin-top:8px;font-style:italic;font-family:var(--serif);font-size:14.5px}
+
+.cmp{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}
+.cmp th{font:500 11px Inter;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2)}
+.cmp td{padding:9px 10px;border-bottom:1px solid var(--line)}
+.cmp td.v{font-family:var(--mono);font-size:12.5px}
+.cmp tr.chg td.v.cur{font-weight:500}
+.cmp .tag{font:10.5px Inter;color:var(--acc);background:var(--acc-2);border-radius:4px;padding:1px 5px;margin-left:6px}
+.cmp tfoot td{font-weight:600;border-bottom:0}
+.dv{display:inline-flex;align-items:center;gap:6px}
+.dv i{width:7px;height:7px;border-radius:50%}
+
+/* drawer */
+.drawer{border-left:1px solid var(--line);background:var(--paper);display:flex;flex-direction:column;min-height:0}
+.dr-h{flex:none;padding:16px 20px 14px;border-bottom:1px solid var(--line)}
+.dr-h .t{display:flex;align-items:center;gap:8px;font-weight:600}
+.dr-h .t .x{margin-left:auto;color:var(--ink-3);width:26px;height:26px;border-radius:6px;display:grid;place-items:center}
+.dr-h .t .x:hover{background:var(--bg-3)}
+.dr-sub{display:flex;gap:12px;margin-top:6px;font-size:12px;color:var(--ink-3)}
+.dr-sub .ok{color:var(--yes)}
+.chat{flex:1;overflow:auto;padding:16px 20px 160px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;position:relative}
+.turn{display:flex;flex-direction:column;max-width:86%;transition:transform .2s}
+.turn .who{font-size:11px;color:var(--ink-3);display:flex;gap:6px;margin-bottom:3px;padding:0 4px}
+.turn .who .mono{color:var(--ink-4)}
+.bub{padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid var(--line);transition:box-shadow .25s,border-color .25s}
+.turn.client{align-self:flex-start}
+.turn.client .bub{border-top-left-radius:4px}
+.turn.operator{align-self:flex-end;align-items:flex-end}
+.turn.operator .bub{background:var(--acc-2);border-color:#dfe2fd;border-top-right-radius:4px}
+.turn.bot{align-self:flex-start;opacity:.78}
+.turn.bot .bub{background:transparent;border-style:dashed;font-size:12.5px;color:var(--ink-2)}
+.turn.system{align-self:center;font-size:11.5px;color:var(--ink-3);padding:4px 0}
+.turn.system .bub{border:0;background:var(--bg-3);border-radius:999px;padding:4px 12px;font-size:11.5px}
+.tags{display:flex;gap:3px;margin-top:4px;padding:0 4px}
+.tags span{font:500 10px/1 var(--mono);padding:3px 5px;border-radius:4px}
+.t-yes{background:var(--yes-bg);color:var(--yes)} .t-no{background:var(--no-bg);color:var(--no)} .t-part{background:var(--part-bg);color:var(--part)} .t-na{background:var(--na-bg);color:var(--na)} .t-gross{background:var(--gross);color:#fff}
+mark{background:transparent;color:inherit;border-radius:2px;padding:0 1px;transition:background .2s}
+.turn.hl mark,.turn.is-focus mark{background:rgba(250,204,21,.35)}
+.turn.hl .bub{border-color:var(--acc-3)}
+.turn.is-focus .bub{box-shadow:0 0 0 3px var(--acc-ring),0 8px 20px -8px rgba(67,56,202,.35);border-color:var(--acc)}
+.turn.is-focus{animation:nudge .5s ease}
+@keyframes nudge{30%{transform:translateY(-2px)}}
+.gap{align-self:center;font-size:11px;color:var(--yes);display:flex;gap:6px;align-items:center}
+
+/* cmdk */
+.cmdk-overlay{position:fixed;inset:0;background:rgba(20,20,40,.18);display:flex;justify-content:center;padding-top:15vh;z-index:50;opacity:0;transition:opacity .15s}
+.cmdk-overlay.is-open{opacity:1}
+.cmdk{width:600px;max-height:460px;background:#fff;border-radius:14px;box-shadow:0 0 0 1px rgba(20,20,40,.06),0 30px 80px -20px rgba(30,27,75,.4);display:flex;flex-direction:column;overflow:hidden;transform:translateY(-6px);transition:transform .15s}
+.is-open .cmdk{transform:none}
+.cmdk-input{display:flex;align-items:center;gap:10px;padding:0 16px;height:54px;border-bottom:1px solid var(--line);color:var(--acc)}
+.cmdk-input input{flex:1;border:0;outline:0;font:16px Inter;color:var(--ink)}
+.cmdk-list{overflow:auto;padding:6px}
+.cmdk-group{font:500 11px Inter;color:var(--ink-3);padding:10px 12px 4px;text-transform:uppercase;letter-spacing:.06em}
+.cmdk-item{display:flex;align-items:center;gap:12px;height:40px;padding:0 12px;border-radius:9px;color:var(--ink-2);cursor:pointer}
+.cmdk-item.is-sel{background:var(--acc-2);color:var(--acc)}
+.cmdk-t{flex:1;display:flex;gap:8px;align-items:center;min-width:0;white-space:nowrap}
+.cmdk-sub{color:var(--ink-3);overflow:hidden;text-overflow:ellipsis}
+.cmdk-lang{font:500 10px var(--mono);color:var(--ink-3)}
+.cmdk-hint{font:11.5px var(--mono);color:var(--ink-3)}
+.cmdk-foot{display:flex;gap:16px;padding:9px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+.cmdk-foot span{display:flex;gap:4px;align-items:center}
+.cmdk-foot-r{margin-left:auto}
+.cmdk-empty{padding:28px;text-align:center;color:var(--ink-3)}
+.toast{position:fixed;bottom:24px;left:calc(50% - 216px);transform:translate(-50%,8px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;opacity:0;transition:.18s;pointer-events:none;z-index:60}
+.toast.is-on{opacity:1;transform:translate(-50%,0)}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#e3e3ea;border-radius:8px;border:2px solid #fff}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="nav">
+    <div class="brand"><i></i>CQA</div>
+    <nav class="tabs"><a href="#" class="on">Отчёты</a><a href="#">Апелляции</a><a href="#">Аналитика</a><a href="#">Чек-листы</a></nav>
+    <div class="nav-r">
+      <button class="btn k-btn" data-cmdk><span>Найти или выполнить…</span><span><kbd>⌘</kbd> <kbd>K</kbd></span></button>
+      <button class="btn" id="tgl">Расшифровка</button>
+      <button class="btn btn-pri" id="ok">Утвердить отчёт</button>
+    </div>
+  </header>
+  <div class="body" id="body">
+    <main class="doc" id="doc">
+      <div class="doc-in">
+        <aside class="toc" id="toc"></aside>
+        <article id="art"></article>
+      </div>
+    </main>
+    <aside class="drawer" id="drawer">
+      <div class="dr-h">
+        <div class="t">Расшифровка диалога <span class="mono" style="font-weight:400;color:var(--ink-3);font-size:12px" id="dr-id"></span><button class="x" id="x" aria-label="Скрыть">✕</button></div>
+        <div class="dr-sub" id="dr-sub"></div>
+      </div>
+      <div class="chat" id="chat"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const DATA = {"dialog":{"id":"p1-ru-009","channel":"agent chat","language":"RU","dataset":"DEV","transcript":[{"timestamp":"00:00","speaker":"client","text":"Вчера вывод работал, сегодня нет. Посмотрите, что с моим счётом?"},{"timestamp":"00:02","speaker":"bot","text":"Здравствуйте! Я AIM, AI-ассистент Freedom Broker. Я могу ответить на вопросы о продуктах и услугах, предоставить информацию по вашим счетам, активам и комиссиям, сравнить данные в таблице, отправить контакты вашего менеджера и передать вопрос специалистам поддержки."},{"timestamp":"00:02","speaker":"bot","text":"Продолжая разговор, Вы соглашаетесь на сбор и обработку персональных данных и подтверждаете, что ознакомились с Политикой конфиденциальности Компании."},{"timestamp":"00:06","speaker":"bot","text":"Для проверки индивидуальной ситуации потребуется оператор."},{"timestamp":"00:38","speaker":"client","text":"Переключите меня на оператора."},{"timestamp":"00:43","speaker":"bot","text":"Желаете, чтобы я соединил Вас с оператором?"},{"timestamp":"00:52","speaker":"client","text":"Да"},{"timestamp":"00:53","speaker":"bot","text":"Пожалуйста, ожидайте. Оператор скоро подключится к чату."},{"timestamp":"00:54","speaker":"system","text":"Эскалация на оператора."},{"timestamp":"01:51","speaker":"operator","text":"Здравствуйте, я Руслан. Какое сообщение вы видите в приложении?"},{"timestamp":"02:24","speaker":"client","text":"Никакого, кнопка не нажимается. Можно проверить сам счёт?"},{"timestamp":"02:51","speaker":"operator","text":"Я посмотрел: на вашем счёте есть ограничение на вывод."},{"timestamp":"03:06","speaker":"client","text":"Подождите, я ещё не подтверждал, что это мой счёт."},{"timestamp":"03:46","speaker":"operator","text":"Подтверждение пока не нужно. Напишите, если приложение опять зависнет."},{"timestamp":"04:19","speaker":"client","text":"Я спрашиваю, почему вывод ограничен."},{"timestamp":"04:35","speaker":"operator","text":"Передам вопрос на проверку. До свидания."}]},"eval":{"id":"ev_6b12f19fd2","model":"claude-opus-5-5","cost_usd":0.21682,"latency_s":97.2,"usage":{"input_tokens":6,"output_tokens":9197,"cache_creation_input_tokens":3834,"cache_read_input_tokens":10902},"samples":3,"summary":"Клиент спросил, почему не работает вывод, и попросил проверить счёт. Оператор сообщил об ограничении на счёте без проверки личности, на возражение клиента ответил, что подтверждение не нужно. Причину ограничения он не объяснил и закончил чат фразой «передам на проверку».","timing_facts":["Первая реакция оператора [9] через 0:57 после [8] — в пределах порога 3:00.","После подключения оператор отвечал клиенту быстрее 3:00."],"answers":{"contact":{"value":1.0,"na":false,"na_reason":"","explanation":"Установление контакта — Да. В первом ответе оператор поздоровался по-русски и назвал своё имя. Основание — [9].","evidence":[{"turn":9,"quote":"Здравствуйте, я Руслан.","verified":true,"speaker":"operator","timestamp":"01:51"}],"checked_range":{"from_turn":9,"to_turn":9},"confidence":"high","needs_review":false,"votes":[1.0,1.0,1.0],"agreement":1.0,"critical_error":false,"critical_reason":""},"needs":{"value":1.0,"na":false,"na_reason":"","explanation":"Выявление потребности — Да. Оператор учёл, что у клиента не работает вывод, и до ответа спросил, какое сообщение видно в приложении. Основание — [9].","evidence":[{"turn":9,"quote":"Какое сообщение вы видите в приложении?","verified":true,"speaker":"operator","timestamp":"01:51"}],"checked_range":{"from_turn":9,"to_turn":10},"confidence":"medium","needs_review":false,"votes":[1.0,1.0,1.0],"agreement":1.0,"critical_error":false,"critical_reason":""},"identification":{"value":0.0,"na":false,"na_reason":"","explanation":"Идентификация — Нет. Оператор сообщил об ограничении на счёте, не проверив личность клиента. Когда клиент на это указал, оператор ответил, что подтверждение не нужно. Основание — [11], [12], [13].","evidence":[{"turn":11,"quote":"на вашем счёте есть ограничение на вывод","verified":true,"speaker":"operator","timestamp":"02:51"},{"turn":12,"quote":"я ещё не подтверждал, что это мой счёт","verified":true,"speaker":"client","timestamp":"03:06"},{"turn":13,"quote":"Подтверждение пока не нужно.","verified":true,"speaker":"operator","timestamp":"03:46"}],"checked_range":{"from_turn":9,"to_turn":13},"confidence":"high","needs_review":false,"votes":[0.0,0.0,0.0],"agreement":1.0,"critical_error":false,"critical_reason":""},"consultation":{"value":10.0,"na":false,"na_reason":"","explanation":"Консультация — 10. Оператор назвал причину проблемы с выводом (ограничение на счёте), но не объяснил, почему оно установлено и как его снять. «Передам на проверку» — следующий шаг без сроков и подробностей, а совет про зависание приложения к вопросу не относится. Основание — [11], [13], [15].","evidence":[{"turn":11,"quote":"на вашем счёте есть ограничение на вывод","verified":true,"speaker":"operator","timestamp":"02:51"},{"turn":14,"quote":"Я спрашиваю, почему вывод ограничен.","verified":true,"speaker":"client","timestamp":"04:19"},{"turn":15,"quote":"Передам вопрос на проверку.","verified":true,"speaker":"operator","timestamp":"04:35"}],"checked_range":{"from_turn":11,"to_turn":15},"confidence":"medium","needs_review":false,"votes":[10.0,5.0,10.0],"agreement":0.67,"critical_error":false,"critical_reason":""},"empathy":{"value":0.0,"na":false,"na_reason":"","explanation":"Эмпатия — Нет. Клиент был обеспокоен тем, что его личность не проверили, и тем, что вывод ограничен. Оператор отмахнулся от первого и не ответил на конкретный вопрос о причине. Основание — [12]–[15].","evidence":[{"turn":13,"quote":"Подтверждение пока не нужно. Напишите, если приложение опять зависнет.","verified":true,"speaker":"operator","timestamp":"03:46"}],"checked_range":{"from_turn":12,"to_turn":15},"confidence":"medium","needs_review":false,"votes":[0.0,0.0,0.0],"agreement":1.0,"critical_error":false,"critical_reason":""},"management":{"value":4.0,"na":false,"na_reason":"","explanation":"Управление диалогом — 4. Реплика оператора про зависание приложения не относилась к вопросу, поэтому клиенту пришлось переспросить о причине ограничения. Основание — [13], [14].","evidence":[{"turn":13,"quote":"Напишите, если приложение опять зависнет.","verified":true,"speaker":"operator","timestamp":"03:46"},{"turn":14,"quote":"Я спрашиваю, почему вывод ограничен.","verified":true,"speaker":"client","timestamp":"04:19"}],"checked_range":{"from_turn":11,"to_turn":15},"confidence":"medium","needs_review":false,"votes":[4.0,4.0,4.0],"agreement":1.0,"critical_error":false,"critical_reason":""},"closing":{"value":1.0,"na":false,"na_reason":"","explanation":"Завершение — Да, с натяжкой. Оператор назвал следующий шаг (передаёт вопрос на проверку) и попрощался, хотя завершил чат резко. Основание — [15].","evidence":[{"turn":15,"quote":"Передам вопрос на проверку. До свидания.","verified":true,"speaker":"operator","timestamp":"04:35"}],"checked_range":{"from_turn":15,"to_turn":15},"confidence":"medium","needs_review":true,"votes":[1.0,1.0,0.0],"agreement":0.67,"critical_error":false,"critical_reason":""},"gross_errors":{"value":1.0,"na":false,"na_reason":"","explanation":"Грубые ошибки — выявлено нарушение. Оператор раскрыл сведения о состоянии счёта (ограничение на вывод) человеку, личность которого не подтверждена, несмотря на возражение клиента. Основание — [11], [12], [13].","evidence":[{"turn":11,"quote":"Я посмотрел: на вашем счёте есть ограничение на вывод.","verified":true,"speaker":"operator","timestamp":"02:51"},{"turn":12,"quote":"Подождите, я ещё не подтверждал, что это мой счёт.","verified":true,"speaker":"client","timestamp":"03:06"}],"checked_range":{"from_turn":9,"to_turn":15},"confidence":"medium","needs_review":false,"votes":[0.0,1.0,1.0],"agreement":0.67,"critical_error":false,"critical_reason":""}},"final_result":{"total":46.0,"raw_total":46.0,"critical_errors":["gross_errors"],"passed":null,"criteria":[{"criterion_id":"contact","weight":10,"effective_weight":10.0,"ratio":1.0,"points":10.0,"na":false},{"criterion_id":"needs","weight":15,"effective_weight":15.0,"ratio":1.0,"points":15.0,"na":false},{"criterion_id":"identification","weight":20,"effective_weight":20.0,"ratio":0.0,"points":0.0,"na":false},{"criterion_id":"consultation","weight":20,"effective_weight":20.0,"ratio":0.5,"points":10.0,"na":false},{"criterion_id":"empathy","weight":15,"effective_weight":15.0,"ratio":0.0,"points":0.0,"na":false},{"criterion_id":"management","weight":15,"effective_weight":15.0,"ratio":0.4,"points":6.0,"na":false},{"criterion_id":"closing","weight":5,"effective_weight":5.0,"ratio":1.0,"points":5.0,"na":false},{"criterion_id":"gross_errors","weight":0,"effective_weight":0,"ratio":null,"points":0,"na":false,"flag":true,"flagged":true}],"sections":[{"id":"start","name":"Начало и понимание запроса","score":100.0,"na":false},{"id":"solve","name":"Безопасность и решение","score":25.0,"na":false},{"id":"lead","name":"Ведение и завершение диалога","score":31.43,"na":false}]},"checklist":{"id":"cl_60b821a5b5","name":"Чек-лист качества чатов","version":2,"criteria":[{"id":"contact","section_id":"start","name":"Установление контакта","description":"Да — оператор поздоровался на языке клиента и представился в первом ответе.","type":"binary","weight":10,"na_allowed":false,"na_rule":"","critical":false,"critical_rule":"","appealable":true},{"id":"needs","section_id":"start","name":"Выявление потребности","description":"Да — оператор учёл известные детали и уточнил недостающее до ответа.","type":"binary","weight":15,"na_allowed":true,"na_rule":"N/A — данных для ответа хватало с самого начала.","critical":false,"critical_rule":"","appealable":true},{"id":"identification","section_id":"solve","name":"Идентификация","description":"Да — проверка личности подтверждена до раскрытия данных или защищённого действия.","type":"binary","weight":20,"na_allowed":true,"na_rule":"N/A — запрос не требовал идентификации.","critical":false,"critical_rule":"","appealable":true},{"id":"consultation","section_id":"solve","name":"Корректная и полная консультация","description":"Оцените ответ или следующий шаг по шкале.","type":"scale","scale":{"min":0.0,"max":20.0,"steps":[0.0,5.0,10.0,15.0,20.0],"labels":{"0":"Ответа по существу нет или ключевая рекомендация ошибочна","5":"Есть общая подсказка, но клиенту всё ещё непонятно, как действовать","10":"Часть запроса закрыта, существенный вопрос остался открытым","15":"Основной вопрос решён, пропущена второстепенная деталь","20":"Все существенные вопросы закрыты или дан корректный следующий шаг"}},"weight":20,"na_allowed":true,"na_rule":"N/A — чат закончился до того, как клиент сформулировал запрос.","critical":false,"critical_rule":"","appealable":true},{"id":"empathy","section_id":"lead","name":"Эмпатия и клиентоориентированность","description":"Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.","type":"binary","weight":15,"na_allowed":false,"na_rule":"","critical":false,"critical_rule":"","appealable":true},{"id":"management","section_id":"lead","name":"Управление диалогом, скорость и грамотность","description":"Оцените ясность, порядок ответов и предупреждение об ожидании по шкале.","type":"scale","scale":{"min":0.0,"max":10.0,"steps":[0.0,4.0,7.0,10.0],"labels":{"0":"Из-за бессвязных или противоречивых реплик ход диалога непонятен","4":"Клиенту приходится переспрашивать из-за формулировок или порядка ответов","7":"Один заметный сбой, но клиент может понять ответ и продолжить","10":"Ответы ясные и связные. Если было явное ожидание, оператор предупредил"}},"weight":15,"na_allowed":false,"na_rule":"","critical":false,"critical_rule":"","appealable":true},{"id":"closing","section_id":"lead","name":"Завершение","description":"Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался.","type":"binary","weight":5,"na_allowed":true,"na_rule":"N/A — чат оборвался до возможности его завершить.","critical":false,"critical_rule":"","appealable":true},{"id":"gross_errors","section_id":"gross","name":"Грубые ошибки","description":"Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено.","type":"flag","weight":0,"na_allowed":false,"na_rule":"","critical":false,"critical_rule":"","appealable":true}],"sections":[{"id":"start","name":"Начало и понимание запроса"},{"id":"solve","name":"Безопасность и решение"},{"id":"lead","name":"Ведение и завершение диалога"},{"id":"gross","name":"Грубые нарушения"}],"first_response_limit_s":180},"created_at":1794045508.463081,"case_status":"scored"},"prev":{"id":"ev_e1a1fa492f","model":"mock","version":1,"total":70.0,"critical":[],"answers":{"contact":{"value":1.0,"na":false,"votes":[1.0,1.0,1.0]},"needs":{"value":null,"na":true,"votes":["N/A",1.0,"N/A"]},"identification":{"value":null,"na":true,"votes":["N/A",0.0,"N/A"]},"consultation":{"value":20.0,"na":false,"votes":[20.0,20.0,20.0]},"empathy":{"value":0.0,"na":false,"votes":[0.0,1.0,0.0]},"management":{"value":7.0,"na":false,"votes":[7.0,10.0,7.0]},"closing":{"value":1.0,"na":false,"votes":[1.0,0.0,1.0]},"gross_errors":{"value":0.0,"na":false,"votes":[0.0,0.0,0.0]}},"criteria":[{"criterion_id":"contact","weight":10,"effective_weight":15.38,"ratio":1.0,"points":15.38,"na":false},{"criterion_id":"needs","weight":15,"effective_weight":0,"ratio":null,"points":0,"na":true},{"criterion_id":"identification","weight":20,"effective_weight":0,"ratio":null,"points":0,"na":true},{"criterion_id":"consultation","weight":20,"effective_weight":30.77,"ratio":1.0,"points":30.77,"na":false},{"criterion_id":"empathy","weight":15,"effective_weight":23.08,"ratio":0.0,"points":0.0,"na":false},{"criterion_id":"management","weight":15,"effective_weight":23.08,"ratio":0.7,"points":16.15,"na":false},{"criterion_id":"closing","weight":5,"effective_weight":7.69,"ratio":1.0,"points":7.69,"na":false},{"criterion_id":"gross_errors","weight":0,"effective_weight":0,"ratio":null,"points":0,"na":false,"flag":true,"flagged":false}]},"queue":[{"id":"p1-ru-009","lang":"RU","channel":"agent chat","turns":16,"op":4,"preview":"Вчера вывод работал, сегодня нет. Посмотрите, что с моим счётом?","total":46.0,"gross":true,"marks":["yes","yes","no","part","no","part","yes","crit"],"labels":["Да","Да","Нет",10,"Нет",4,"Да","Да"],"disagree":3,"latency":97.2},{"id":"p1-ru-003","lang":"RU","channel":"agent chat","turns":15,"op":3,"preview":"Какая комиссия на тарифе инвестор? Интересует покупка акций.","total":70.0,"gross":false,"marks":["yes","yes","na","part","yes","part","no","ok"],"labels":["Да","Да","N/A",10,"Да",4,"Нет","Нет"],"disagree":0,"latency":42.8},{"id":"p1-en-013","lang":"EN","channel":"agent chat","turns":14,"op":2,"preview":"I'm trying to figure out how to find bonds in the app.","total":62.31,"gross":true,"marks":["yes","na","na","yes","no","part","no","crit"],"labels":["Да","N/A","N/A",20,"Нет",7,"Нет","Да"],"disagree":0,"latency":92.1},{"id":"p1-kz-015","lang":"KZ","channel":"agent chat","turns":14,"op":3,"preview":"Менің шотымда неге ақша шығару жабық екенін қарап беріңізші.","total":24.71,"gross":true,"marks":["yes","na","no","part","no","part","no","crit"],"labels":["Да","N/A","Нет",5,"Нет",4,"Нет","Да"],"disagree":3,"latency":91.0},{"id":"p1-ru-007","lang":"RU","channel":"agent chat","turns":13,"op":2,"preview":"Не могу вывести деньги, просит обновить анкетные данные.","total":54.62,"gross":false,"marks":["yes","na","na","part","no","part","yes","ok"],"labels":["Да","N/A","N/A",10,"Нет",7,"Да","Нет"],"disagree":1,"latency":89.4},{"id":"p1-kz-011","lang":"KZ","channel":"agent chat","turns":14,"op":2,"preview":"D-шот пен сауда шотының айырмасы қандай?","total":91.67,"gross":false,"marks":["yes","na","na","part","yes","yes","na","ok"],"labels":["Да","N/A","N/A",15,"Да",10,"N/A","Нет"],"disagree":1,"latency":94.6},{"id":"p1-en-008","lang":"EN","channel":"agent chat","turns":20,"op":5,"preview":"There are several results for the company I'm looking up. How can I find the exact stock?","total":77.69,"gross":false,"marks":["yes","na","na","part","yes","part","no","ok"],"labels":["Да","N/A","N/A",15,"Да",7,"Нет","Нет"],"disagree":1,"latency":93.6},{"id":"p4-ru-004","lang":"RU","channel":"voice call","turns":115,"op":39,"preview":"2","total":85.26,"gross":false,"marks":["yes","yes","yes","part","yes","part","na","ok"],"labels":["Да","Да","Да",15,"Да",4,"N/A","Нет"],"disagree":1,"latency":125.2},{"id":"p1-ru-022","lang":"RU","channel":"agent chat","turns":14,"op":2,"preview":"Хочу выбрать облигации. Можете подсказать, что купить, чтобы деньги выросли?","total":20.0,"gross":true,"marks":["yes","no","na","no","no","part","no","crit"],"labels":["Да","Нет","N/A",0,"Нет",4,"Нет","Да"],"disagree":1,"latency":87.6},{"id":"p1-kz-003","lang":"KZ","channel":"agent chat","turns":26,"op":7,"preview":"Кеше шотқа ақша аудардым, әлі көрінбей тұр.","total":100.0,"gross":false,"marks":["yes","yes","yes","yes","yes","yes","yes","ok"],"labels":["Да","Да","Да",20,"Да",10,"Да","Нет"],"disagree":0,"latency":24.6},{"id":"p1-en-002","lang":"EN","channel":"agent chat","turns":12,"op":2,"preview":"Where is the sign-in button? I'm on the Freedom Finance Global website.","total":100.0,"gross":false,"marks":["yes","na","na","yes","yes","yes","yes","ok"],"labels":["Да","N/A","N/A",20,"Да",10,"Да","Нет"],"disagree":0,"latency":84.5},{"id":"p1-ru-020","lang":"RU","channel":"agent chat","turns":14,"op":3,"preview":"В окне покупки вижу галочку «Использовать маржу». Как убрать?","total":84.62,"gross":false,"marks":["yes","na","na","part","yes","yes","no","ok"],"labels":["Да","N/A","N/A",15,"Да",10,"Нет","Нет"],"disagree":1,"latency":86.4},{"id":"p4-ru-002","lang":"RU","channel":"voice call","turns":73,"op":51,"preview":"Алло.","total":80.0,"gross":false,"marks":["no","yes","yes","part","yes","yes","no","ok"],"labels":["Нет","Да","Да",15,"Да",10,"Нет","Нет"],"disagree":1,"latency":97.4},{"id":"p1-en-014","lang":"EN","channel":"agent chat","turns":15,"op":3,"preview":"Can someone check why withdrawals are blocked on my account?","total":24.71,"gross":true,"marks":["yes","na","no","part","no","part","no","crit"],"labels":["Да","N/A","Нет",5,"Нет",4,"Нет","Да"],"disagree":1,"latency":88.4}],"stats":{"checklist":{"id":"cl_60b821a5b5","name":"Чек-лист качества чатов","version":2},"evaluated":65,"dialogs":65,"avg_total":79.1,"passed":0,"critical":8,"open_appeals":0,"criteria":{"contact":{"name":"Установление контакта","na":0,"avg_ratio":0.938,"full":61,"partial":0,"zero":4},"needs":{"name":"Выявление потребности","na":40,"avg_ratio":0.6,"full":15,"partial":0,"zero":10},"identification":{"name":"Идентификация","na":54,"avg_ratio":0.727,"full":8,"partial":0,"zero":3},"consultation":{"name":"Корректная и полная консультация","na":1,"avg_ratio":0.855,"full":45,"partial":16,"zero":3},"empathy":{"name":"Эмпатия и клиентоориентированность","na":0,"avg_ratio":0.769,"full":50,"partial":0,"zero":15},"management":{"name":"Управление диалогом, скорость и грамотность","na":0,"avg_ratio":0.837,"full":43,"partial":21,"zero":1},"closing":{"name":"Завершение","na":6,"avg_ratio":0.237,"full":14,"partial":0,"zero":45}},"by_language":{"KZ":84.3,"RU":77.0,"EN":78.9},"distribution":[0,1,4,3,3,2,2,5,6,39],"avg_cost_usd":0.1814,"avg_latency_s":84.2},"heat":{"contact":{"RU":0.943,"KZ":0.933,"EN":0.933},"needs":{"RU":0.632,"KZ":0.75,"EN":0.0},"identification":{"RU":0.857,"KZ":0.5,"EN":0.5},"consultation":{"RU":0.801,"KZ":0.933,"EN":0.9},"empathy":{"RU":0.743,"KZ":0.867,"EN":0.733},"management":{"RU":0.8,"KZ":0.9,"EN":0.86},"closing":{"RU":0.29,"KZ":0.143,"EN":0.214}},"totals":[92.31,100.0,70.0,93.75,70.77,85.0,54.62,92.31,46.0,95.0,92.31,92.31,100.0,38.13,92.31,45.0,93.75,12.5,93.75,84.62,92.31,20.0,92.31,84.62,100.0,20.0,92.31,92.31,62.31,93.75,93.75,92.31,100.0,92.31,78.46,92.31,92.31,38.13,92.31,92.31,91.67,100.0,92.31,92.31,24.71,92.31,100.0,92.31,92.31,92.31,85.0,46.92,77.69,100.0,92.31,100.0,92.31,62.31,24.71,32.5,79.47,80.0,59.17,95.5,85.26],"agreement":0.96};
+/* ===== CQA shared mock logic (no framework) ===== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = (n, d = 2) => (n == null ? '—' : Number(n).toFixed(d).replace('.', ','));
+const fmtPts = n => (Number.isInteger(n) ? String(n) : fmt(n, 2).replace(/,?0+$/, ''));
+
+const T = DATA.dialog.transcript;
+const EV = DATA.eval;
+const CL = EV.checklist;
+const SPEAKER = { client: 'Клиент', operator: 'Оператор', bot: 'Бот AIM', system: 'Система' };
+const LANG = { RU: 'Русский', KZ: 'Қазақша', EN: 'English' };
+const SHORT = {
+  contact: 'Контакт', needs: 'Потребность', identification: 'Идентификация', consultation: 'Консультация',
+  empathy: 'Эмпатия', management: 'Управление', closing: 'Завершение', gross_errors: 'Грубые ошибки'
+};
+
+/* Build criterion view-models */
+const CRITS = CL.criteria.map((c, i) => {
+  const a = EV.answers[c.id];
+  const r = EV.final_result.criteria.find(x => x.criterion_id === c.id);
+  let status, label;
+  if (c.type === 'flag') { status = a.value ? 'gross' : 'ok'; label = a.value ? 'Выявлено' : 'Нет'; }
+  else if (a.na) { status = 'na'; label = 'N/A'; }
+  else if (c.type === 'binary') { status = a.value ? 'yes' : 'no'; label = a.value ? 'Да' : 'Нет'; }
+  else { status = r.ratio === 1 ? 'yes' : r.ratio === 0 ? 'no' : 'part'; label = fmtPts(a.value) + ' / ' + fmtPts(c.scale.max); }
+  const fin = a.na ? 'N/A' : a.value;
+  const agree = a.votes.filter(v => v === fin).length;
+  const prev = DATA.prev.answers[c.id];
+  return {
+    i: i + 1, id: c.id, name: c.name, short: SHORT[c.id], desc: c.description, type: c.type, weight: c.weight,
+    section: c.section_id, scale: c.scale, a, r, status, label, agree, votes: a.votes,
+    review: agree < 3, eff: r.effective_weight, pts: r.points, prev
+  };
+});
+const STATUS_TEXT = { yes: 'Да', no: 'Нет', part: 'Частично', na: 'N/A', gross: 'Грубая ошибка', ok: 'Нет нарушений' };
+const TOTAL = EV.final_result.total;
+const GROSS = EV.final_result.critical_errors.length > 0;
+const REVIEW_N = CRITS.filter(c => c.review).length;
+
+/* explanation text with clickable [N] refs */
+function linkRefs(text) {
+  return esc(text).replace(/\[(\d+)\]/g, (m, n) => `<button class="ref" data-turn="${n}" title="Перейти к реплике ${n}">${n}</button>`);
+}
+function voteLabel(v, c) {
+  if (v === 'N/A') return 'N/A';
+  if (c.type === 'binary') return v ? 'Да' : 'Нет';
+  if (c.type === 'flag') return v ? 'Есть' : 'Нет';
+  return fmtPts(v);
+}
+
+/* first operator response */
+const ESC_IDX = T.findIndex(t => t.speaker === 'system');
+const OP_IDX = T.findIndex(t => t.speaker === 'operator');
+const toSec = s => { const [m, ss] = s.split(':').map(Number); return m * 60 + ss; };
+const FIRST_RESP = toSec(T[OP_IDX].timestamp) - toSec(T[ESC_IDX].timestamp);
+const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+
+/* Turn → criteria that cite it */
+const CITED = {};
+CRITS.forEach(c => c.a.evidence.forEach(e => (CITED[e.turn] = CITED[e.turn] || []).push(c)));
+
+/* Scroll + highlight a turn */
+function focusTurn(n, opts = {}) {
+  const el = document.querySelector(`[data-tidx="${n}"]`);
+  if (!el) return;
+  $$('.turn.is-focus').forEach(x => x.classList.remove('is-focus'));
+  el.classList.remove('is-focus'); void el.offsetWidth; el.classList.add('is-focus');
+  if (!opts.noScroll) el.scrollIntoView({ behavior: opts.instant ? 'auto' : 'smooth', block: 'center' });
+  if (typeof onTurnFocus === 'function') onTurnFocus(n);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.ref,[data-goto]');
+  if (b) { e.stopPropagation(); focusTurn(+(b.dataset.turn ?? b.dataset.goto)); }
+});
+
+/* Mark quoted fragment inside turn text */
+function turnHTML(i) {
+  let txt = esc(T[i].text);
+  const quotes = (CITED[i] || []).flatMap(c => c.a.evidence.filter(e => e.turn === i).map(e => e.quote));
+  quotes.sort((a, b) => b.length - a.length).forEach(q => {
+    const qe = esc(q.replace(/[«»]/g, m => m));
+    if (txt.includes(qe) && !txt.includes('<mark>' + qe)) txt = txt.replace(qe, `<mark>${qe}</mark>`);
+  });
+  return txt;
+}
+
+/* ===== Command palette ===== */
+const CMDS = [
+  { g: 'Действия', icon: 'play', t: 'Оценить все неоценённые', k: '⇧ E', hint: '0 в очереди' },
+  { g: 'Действия', icon: 'flag', t: 'Оспорить критерий…', k: 'A' },
+  { g: 'Действия', icon: 'check', t: 'Подтвердить оценку и закрыть кейс', k: '⌘ ↵' },
+  { g: 'Действия', icon: 'refresh', t: 'Переоценить этот диалог', k: 'R' },
+  { g: 'Навигация', icon: 'inbox', t: 'Перейти к апелляциям', k: 'G A', hint: DATA.stats.open_appeals + ' открытых' },
+  { g: 'Навигация', icon: 'chart', t: 'Аналитика по критериям', k: 'G S' },
+  { g: 'Навигация', icon: 'list', t: 'Новая версия чек-листа', k: 'G C', hint: 'текущая v' + CL.version },
+  { g: 'Навигация', icon: 'diff', t: 'Сравнить с чек-листом v' + DATA.prev.version, k: 'D' },
+  ...DATA.queue.map(q => ({ g: 'Открыть диалог…', icon: 'chat', t: q.id, sub: q.preview, hint: fmt(q.total) + (q.gross ? ' · грубая' : ''), lang: q.lang }))
+];
+const ICONS = {
+  play: '<path d="M5 3.5v9l7.5-4.5z"/>', flag: '<path d="M4 14V2.5M4 3h7.5l-1.5 3 1.5 3H4"/>', check: '<path d="M3 8.5l3 3 7-7"/>',
+  refresh: '<path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v2.5h-2.5"/>', inbox: '<path d="M2.5 9.5h3l1 2h3l1-2h3M3.5 3.5h9l1 6v3.5h-11V9.5z"/>',
+  chart: '<path d="M3 13V8M8 13V3M13 13V6"/>', list: '<path d="M6 4h7M6 8h7M6 12h7M3 4h.01M3 8h.01M3 12h.01"/>',
+  diff: '<path d="M5 2.5v11M11 2.5v11M2.5 5.5h5M8.5 10.5h5"/>', chat: '<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/>',
+  search: '<circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/>'
+};
+const icon = (n, s = 16) => `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[n] || ''}</svg>`;
+
+function buildPalette() {
+  const ov = document.createElement('div');
+  ov.className = 'cmdk-overlay'; ov.hidden = true;
+  ov.innerHTML = `<div class="cmdk" role="dialog" aria-label="Командная палитра">
+    <div class="cmdk-input">${icon('search')}<input placeholder="Команда или ID диалога…" aria-label="Поиск команд"><kbd>esc</kbd></div>
+    <div class="cmdk-list" role="listbox"></div>
+    <div class="cmdk-foot"><span><kbd>↑</kbd><kbd>↓</kbd> выбрать</span><span><kbd>↵</kbd> выполнить</span><span class="cmdk-foot-r">CQA · ${esc(CL.name)} v${CL.version}</span></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const inp = $('input', ov), list = $('.cmdk-list', ov);
+  let sel = 0, items = [];
+  function render() {
+    const q = inp.value.trim().toLowerCase();
+    items = CMDS.filter(c => !q || (c.t + ' ' + (c.sub || '') + ' ' + c.g).toLowerCase().includes(q));
+    let html = '', g = null;
+    items.slice(0, 40).forEach((c, i) => {
+      if (c.g !== g) { g = c.g; html += `<div class="cmdk-group">${esc(g)}</div>`; }
+      html += `<div class="cmdk-item${i === sel ? ' is-sel' : ''}" data-i="${i}" role="option">${icon(c.icon)}
+        <span class="cmdk-t">${c.lang ? `<b class="cmdk-lang">${c.lang}</b>` : ''}${esc(c.t)}${c.sub ? `<span class="cmdk-sub">${esc(c.sub)}</span>` : ''}</span>
+        ${c.hint ? `<span class="cmdk-hint">${esc(c.hint)}</span>` : ''}${c.k ? `<kbd>${c.k}</kbd>` : ''}</div>`;
+    });
+    list.innerHTML = html || '<div class="cmdk-empty">Ничего не найдено</div>';
+    const s = $('.is-sel', list); s && s.scrollIntoView({ block: 'nearest' });
+  }
+  function run(i) {
+    const c = items[i]; if (!c) return;
+    close();
+    if (typeof toast === 'function') toast(c.g === 'Открыть диалог…' ? `Открываю ${c.t}…` : `«${c.t}» — демо-действие`);
+  }
+  function open() { ov.hidden = false; inp.value = ''; sel = 0; render(); requestAnimationFrame(() => { ov.classList.add('is-open'); inp.focus(); }); }
+  function close() { ov.classList.remove('is-open'); setTimeout(() => (ov.hidden = true), 140); }
+  inp.addEventListener('input', () => { sel = 0; render(); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { sel = Math.min(sel + 1, items.length - 1); render(); e.preventDefault(); }
+    if (e.key === 'ArrowUp') { sel = Math.max(sel - 1, 0); render(); e.preventDefault(); }
+    if (e.key === 'Enter') run(sel);
+    if (e.key === 'Escape') close();
+  });
+  list.addEventListener('mousemove', e => { const it = e.target.closest('.cmdk-item'); if (it && +it.dataset.i !== sel) { sel = +it.dataset.i; $$('.cmdk-item', list).forEach(x => x.classList.toggle('is-sel', +x.dataset.i === sel)); } });
+  list.addEventListener('click', e => { const it = e.target.closest('.cmdk-item'); it && run(+it.dataset.i); });
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); ov.hidden ? open() : close(); }
+  });
+  $$('[data-cmdk]').forEach(b => b.addEventListener('click', open));
+  if (new URLSearchParams(location.search).has('cmdk')) { open(); }
+  return { open, close };
+}
+
+/* toast */
+function toast(msg) {
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('is-on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('is-on'), 2200);
+}
+
+/* Appeal: options for a criterion */
+function decisionOptions(c) {
+  if (c.type === 'binary') return [...[{ v: 1, l: 'Да' }, { v: 0, l: 'Нет' }], ...(CL.criteria.find(x => x.id === c.id).na_allowed ? [{ v: 'na', l: 'N/A' }] : [])];
+  if (c.type === 'flag') return [{ v: 1, l: 'Есть нарушение' }, { v: 0, l: 'Нет нарушения' }];
+  return [...c.scale.steps.map(s => ({ v: s, l: fmtPts(s) })), ...(CL.criteria.find(x => x.id === c.id).na_allowed ? [{ v: 'na', l: 'N/A' }] : [])];
+}
+/* approximate new total if reviewer changes c (no NA re-weighting for simplicity unless na) */
+function totalWith(c, v) {
+  if (c.type === 'flag') return TOTAL;
+  const max = c.type === 'binary' ? 1 : c.scale.max;
+  const curPts = c.pts;
+  if (v === 'na') return Math.round((TOTAL - curPts) / (100 - c.eff) * 100 * 100) / 100;
+  return Math.round((TOTAL - curPts + (v / max) * c.eff) * 100) / 100;
+}
+const isStatic = new URLSearchParams(location.search).has('static');
+
+</script>
+<script>
+const D = DATA.dialog;
+const colorOf = s => ({ yes: 'var(--yes-fill)', part: 'var(--part-fill)', no: 'var(--no-fill)', na: 'var(--na)', gross: 'var(--gross)', ok: 'var(--ink-4)' }[s]);
+const scoreCol = v => v >= 85 ? 'var(--yes-fill)' : v >= 60 ? 'var(--part-fill)' : 'var(--no-fill)';
+/* demo reviewer decision on the disputed criterion */
+const decisions = { closing: { v: 0, r: 'Итог не подведён: причина ограничения так и не названа, «передам на проверку» без срока.', who: 'Айгерим К.', when: 'сегодня, 14:12', demo: true } };
+let appealOpen = null, draft = { v: null, r: '' };
+const finalTotal = () => { let t = TOTAL; for (const id in decisions) { const c = CRITS.find(x => x.id === id); t += totalWith(c, decisions[id].v) - TOTAL; } return Math.round(t * 100) / 100; };
+
+function renderTOC(){
+  $('#toc').innerHTML = `<h6>Содержание</h6>
+    <a href="#top"><span class="n"></span>Вердикт</a>
+    ${CRITS.map(c => `<a href="#c-${c.id}"><span class="n">${c.i}</span><span class="d" style="background:${colorOf(c.status)}"></span>${c.short}${c.review ? '<span class="rv">◐</span>' : ''}</a>`).join('')}
+    <hr><a href="#cmp"><span class="n"></span>Версии и решения</a>`;
+}
+
+function critItem(c){
+  const fin = c.a.na ? 'N/A' : c.a.value;
+  const cons = `<span class="cons${c.review ? ' rev' : ''}">${c.votes.map(v => `<i class="${v === fin ? '' : 'x'}"></i>`).join('')}</span>`;
+  const pts = c.type === 'flag' ? '<small>без баллов</small>' : c.a.na ? '<small>вес перераспределён</small>' : `${fmtPts(c.pts)}<small> / ${fmtPts(c.eff)}</small>`;
+  const dec = decisions[c.id];
+  const cr = c.a.checked_range;
+  return `<section class="item" id="c-${c.id}">
+    <div class="item-n">${String(c.i).padStart(2,'0')}</div>
+    <div>
+      <div class="item-h"><h3>${c.name}</h3>${c.weight ? `<span class="w">вес ${c.weight}</span>` : ''}
+        <div class="r"><span class="pill p-${c.status}">${c.status === 'part' ? 'Частично · ' + c.label : c.label}</span><span class="pts">${pts}</span></div></div>
+      <p class="exp">${linkRefs(c.a.explanation.replace(/^[^—]+—\s*[^.]+\.\s*/, ''))}</p>
+      ${c.a.na ? `<div class="na-note"><b>Почему N/A.</b> ${esc(c.a.na_reason)}</div>` : ''}
+      <div class="quotes">${c.a.evidence.map(e => `<button class="q" data-goto="${e.turn}"><span class="who">[${e.turn}] ${SPEAKER[e.speaker] || ''}<br>${e.timestamp || ''}</span><blockquote>«${esc(e.quote)}»</blockquote></button>`).join('')}</div>
+      <div class="foot">
+        <span>${cons}${c.agree}/3 прогона согласны${c.review ? ' · <span class="rv">нужна проверка</span>' : ''}</span>
+        <span>Проверено: реплики <button class="ref" data-turn="${cr.from_turn}">${cr.from_turn}</button>–<button class="ref" data-turn="${cr.to_turn}">${cr.to_turn}</button></span>
+        <span>Голоса: <span class="mono">${c.votes.map(v => voteLabel(v, c)).join(' / ')}</span></span>
+        ${dec || appealOpen === c.id ? '' : `<button class="linkbtn" data-appeal="${c.id}">Оспорить →</button>`}
+      </div>
+      ${appealOpen === c.id ? appealHTML(c) : ''}
+      ${dec ? trailHTML(c, dec) : ''}
+    </div></section>`;
+}
+function appealHTML(c){
+  return `<div class="appeal" data-c="${c.id}"><span class="lbl">Решение ревьюера</span>
+    <div class="opts">${decisionOptions(c).map(o => `<button data-v="${o.v}" class="${String(draft.v) === String(o.v) ? 'on' : ''}">${o.l}</button>`).join('')}</div>
+    <textarea placeholder="Обоснование: что увидели в диалоге, со ссылкой на реплику">${esc(draft.r)}</textarea>
+    <div class="appeal-f"><button class="btn btn-pri" data-act="save">Сохранить решение</button><button class="btn btn-ghost" data-act="cancel">Отмена</button>
+    <span class="delta">${draft.v != null ? `итог ${fmt(finalTotal())} → <b style="color:var(--acc)">${fmt(finalTotal() + totalWith(c, draft.v === 'na' ? 'na' : +draft.v) - TOTAL)}</b>` : 'выберите решение'}</span></div></div>`;
+}
+function trailHTML(c, d){
+  const l = d.v === 'na' ? 'N/A' : voteLabel(+d.v, c);
+  return `<div class="trail"><div><span>Оценка ИИ</span>${c.label} · ${fmtPts(c.pts)} б.</div><div><span>Ревьюер</span>${l}</div><div class="fin"><span>Итог кейса</span><b class="mono">${fmt(finalTotal())}</b></div></div>
+  <p class="trail-note">«${esc(d.r)}» — ${d.who}, ${d.when}${d.demo ? ' · демо' : ''}</p>`;
+}
+
+function render(){
+  const ft = finalTotal();
+  const bins = DATA.stats.distribution; const mx = Math.max(...bins); const myBin = Math.min(9, Math.floor(TOTAL / 10));
+  const gross = CRITS.find(c => c.id === 'gross_errors');
+  const bySec = id => CRITS.filter(c => c.section === id);
+  const secNames = { start: 'Начало и понимание запроса', solve: 'Безопасность и решение', lead: 'Ведение и завершение диалога', gross: 'Грубые нарушения' };
+  const secScore = id => EV.final_result.sections.find(s => s.id === id)?.score;
+  const segs = CRITS.filter(c => c.type !== 'flag' && !c.a.na);
+  $('#art').innerHTML = `
+  <div id="top" class="eyebrow"><span class="mono">${D.id}</span><span class="sep"></span><span>${D.channel}</span><span class="sep"></span><span>${LANG[D.language]}</span><span class="sep"></span><span>${T.length} реплик</span><span class="sep"></span><span>${CL.name} · v${CL.version}</span></div>
+  <h1>Оператор раскрыл состояние счёта до&nbsp;проверки личности</h1>
+  <p class="lede">${esc(EV.summary)}</p>
+
+  <div class="hero">
+    <div class="hero-l">
+      <span class="lbl">Итоговый балл</span>
+      <div class="score-line"><span class="big">${Math.floor(TOTAL)}<sup>,${fmt(TOTAL).split(',')[1]}</sup></span><span class="of">из 100</span>
+        <div class="after">после ревью<b class="mono">${fmt(ft)}</b></div></div>
+      <div class="wbar">${segs.map(c => `<div class="wseg" style="flex:${c.eff}" title="${esc(c.name)}: ${fmtPts(c.pts)} из ${fmtPts(c.eff)}" data-jump="${c.id}"><i style="width:${(c.r.ratio * 100)}%;background:${colorOf(c.status)}"></i></div>`).join('')}</div>
+      <div class="wlegend">${segs.map(c => `<span style="flex:${c.eff}">${String(c.i).padStart(2,'0')}</span>`).join('')}</div>
+      <div class="verdicts">
+        ${GROSS ? `<span class="vchip gross">● Грубая ошибка · раскрытие данных</span>` : ''}
+        ${REVIEW_N ? `<span class="vchip rev">◐ ${REVIEW_N} критерия без консенсуса</span>` : ''}
+        <span class="vchip ok">Первая реакция ${mmss(FIRST_RESP)} — в пределах 3:00</span>
+      </div>
+      <div class="meta-row"><span>Модель <span class="mono">${EV.model}</span></span><span>×${EV.samples} прогона</span><span><span class="mono">${fmt(EV.latency_s,1)} с</span></span><span><span class="mono">$${EV.cost_usd.toFixed(3)}</span></span></div>
+    </div>
+    <div class="hero-r">
+      <span class="lbl">По разделам</span>
+      <div class="secs">${EV.final_result.sections.map(s => `<div class="sec"><span>${s.name}</span><b>${fmt(s.score,0)}</b><div class="bar"><i style="width:${s.score}%;background:${scoreCol(s.score)}"></i></div></div>`).join('')}</div>
+      <div class="dist"><div class="dist-h"><span class="lbl">Среди ${DATA.stats.evaluated} диалогов</span><span>среднее <b class="mono" style="color:var(--ink)">${fmt(DATA.stats.avg_total,1)}</b></span></div>
+        <div class="hist">${bins.map((b, i) => `<i class="${i === myBin ? 'me' : ''}" style="height:${Math.max(6, Math.sqrt(b / mx) * 100)}%" title="${i*10}–${i*10+10}: ${b}"></i>`).join('')}</div>
+        <div class="hist-x"><span>0</span><span>50</span><span>100</span></div></div>
+    </div>
+  </div>
+
+  ${['start','solve','lead','gross'].map(s => `<h2>${secNames[s]}${secScore(s) != null ? `<span class="sc">${fmt(secScore(s),0)} / 100</span>` : ''}</h2>${bySec(s).map(critItem).join('')}`).join('')}
+
+  <h2 id="cmp">Версии и решения</h2>
+  <p class="h2-sub">Одна и та же переписка: оценка ИИ на прошлой версии чек-листа, текущая оценка и решение ревьюера.</p>
+  <table class="cmp"><thead><tr><th>Критерий</th><th>Чек-лист v${DATA.prev.version}</th><th>Чек-лист v${CL.version} · ИИ</th><th>Ревьюер</th><th>Итог</th></tr></thead>
+  <tbody>${CRITS.map(c => {
+    const p = c.prev; const pl = p.na ? 'N/A' : voteLabel(p.value, c); const cl = c.a.na ? 'N/A' : voteLabel(c.a.value, c);
+    const d = decisions[c.id]; const dl = d ? (d.v === 'na' ? 'N/A' : voteLabel(+d.v, c)) : '—';
+    const chg = pl !== cl;
+    return `<tr class="${chg ? 'chg' : ''}"><td>${c.short}</td><td class="v" style="color:var(--ink-3)">${pl}</td><td class="v cur"><span class="dv"><i style="background:${colorOf(c.status)}"></i>${cl}</span>${chg ? '<span class="tag">изменилось</span>' : ''}</td><td class="v">${dl}</td><td class="v"><b>${d ? dl : cl}</b></td></tr>`; }).join('')}</tbody>
+  <tfoot><tr><td>Итог</td><td class="v" style="color:var(--ink-3)">${fmt(DATA.prev.total)}</td><td class="v">${fmt(TOTAL)}</td><td class="v">${Object.keys(decisions).length} изм.</td><td class="v" style="color:var(--acc)">${fmt(ft)}</td></tr></tfoot></table>`;
+}
+
+function renderChat(){
+  $('#dr-id').textContent = D.id;
+  $('#dr-sub').innerHTML = `<span>${T.filter(t=>t.speaker==='operator').length} реплики оператора</span><span>${T[T.length-1].timestamp}</span><span class="ok">● ответ через ${mmss(FIRST_RESP)}</span>`;
+  $('#chat').innerHTML = T.map((t, i) => {
+    const tags = (CITED[i] || []).map(c => `<span class="t-${c.status === 'ok' ? 'na' : c.status}" title="${esc(c.name)}">${c.i}</span>`).join('');
+    const gap = t.speaker === 'system' ? `<div class="gap">⏱ оператор подключился через ${mmss(FIRST_RESP)}</div>` : '';
+    return `<div class="turn ${t.speaker}" data-tidx="${i}">${t.speaker !== 'system' ? `<div class="who">${SPEAKER[t.speaker]} <span class="mono">[${i}] · ${t.timestamp}</span></div>` : ''}
+      <div class="bub">${t.speaker === 'system' ? esc(t.text) + ' · ' + t.timestamp : turnHTML(i)}</div>${tags ? `<div class="tags">${tags}</div>` : ''}</div>${gap}`;
+  }).join('');
+}
+
+renderTOC(); render(); renderChat();
+requestAnimationFrame(() => { const ch = $('#chat'); ch.style.scrollBehavior = 'auto'; ch.scrollTop = $('[data-tidx="8"]').offsetTop - 16; ch.style.scrollBehavior = ''; });
+
+$('#art').addEventListener('mouseover', e => { const it = e.target.closest('.item'); const id = it?.id.slice(2); if (id === hov) return; hov = id;
+  const c = CRITS.find(x => x.id === id); $$('.turn').forEach(t => t.classList.toggle('hl', !!c && c.a.evidence.some(ev => ev.turn === +t.dataset.tidx))); });
+let hov = null;
+$('#art').addEventListener('click', e => {
+  const ap = e.target.closest('[data-appeal]'); const opt = e.target.closest('.opts button'); const act = e.target.closest('[data-act]')?.dataset.act;
+  const jump = e.target.closest('[data-jump]');
+  if (jump) { $('#c-' + jump.dataset.jump).scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (ap) { appealOpen = ap.dataset.appeal; draft = { v: null, r: '' }; render(); setTimeout(() => $('.appeal textarea')?.focus({ preventScroll: true }), 0); return; }
+  if (opt) { draft.r = $('.appeal textarea').value; draft.v = opt.dataset.v; render(); return; }
+  if (act === 'cancel') { appealOpen = null; render(); }
+  if (act === 'save') { if (draft.v == null) return toast('Выберите решение'); draft.r = $('.appeal textarea').value || 'Без комментария'; decisions[appealOpen] = { v: draft.v === 'na' ? 'na' : +draft.v, r: draft.r, who: 'Вы', when: 'только что' }; appealOpen = null; render(); toast('Решение сохранено'); }
+});
+let open = true;
+const setDrawer = v => { open = v; $('#body').style.gridTemplateColumns = v ? '1fr 432px' : '1fr 0'; $('#drawer').style.visibility = v ? '' : 'hidden'; };
+$('#tgl').onclick = () => setDrawer(!open); $('#x').onclick = () => setDrawer(false);
+function onTurnFocus(){ if (!open) setDrawer(true); }
+$('#ok').onclick = () => toast(`Отчёт утверждён · итог ${fmt(finalTotal())}`);
+buildPalette();
+const qp = new URLSearchParams(location.search);
+if (qp.has('appeal')) { appealOpen = 'consultation'; draft = { v: '15', r: 'Причина названа (ограничение), следующий шаг дан — ставлю 15 [11], [15]' }; render(); setTimeout(() => { $('#doc').style.scrollBehavior='auto'; $('#c-consultation').scrollIntoView(); }, 50); }
+if (qp.has('cmp')) setTimeout(() => { $('#doc').style.scrollBehavior='auto'; $('#cmp').scrollIntoView(); }, 50);
+</script>
+</body>
+</html>

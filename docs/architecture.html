@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>CQA · системный дизайн</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --brand:#0e3b2c; --accent:#1fa971; --text:#13201b; --muted:#5d6b65; --line:#d5ddd9; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; font: 15px/1.35 Inter, -apple-system, sans-serif; color: var(--text); }
+  #canvas { position: relative; width: 1900px; padding: 34px 40px 40px; }
+  h1 { margin: 0; font-size: 30px; color: var(--brand); letter-spacing: -.4px; }
+  .sub { color: var(--muted); margin-top: 4px; font-size: 15px; }
+  svg#wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+  .zone { position: absolute; border-radius: 18px; padding: 34px 16px 16px; border: 1.5px solid; }
+  .zone > .zt { position: absolute; top: 10px; left: 16px; font-weight: 800; font-size: 13px; letter-spacing: .6px; text-transform: uppercase; }
+  .z-ui { background: #f0faf5; border-color: #a9dcc3; } .z-ui > .zt { color: #157a50; }
+  .z-src { background: #f1f5ff; border-color: #bccdf3; } .z-src > .zt { color: #3056b5; }
+  .z-be { background: #fbfcfc; border-color: #c4cfca; } .z-be > .zt { color: var(--brand); }
+  .z-pipe { background: #fffaf0; border-color: #f3cf8b; } .z-pipe > .zt { color: #a86a00; }
+  .z-llm { background: #f6f3fd; border-color: #cfc3f0; } .z-llm > .zt { color: #6b4fbb; }
+  .z-db { background: #f5f7f6; border-color: #c9d3cf; } .z-db > .zt { color: var(--muted); }
+
+  .box { position: absolute; background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 13px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .box b { display: block; font-size: 15px; margin-bottom: 3px; }
+  .box span { display: block; font-size: 12.5px; color: var(--muted); }
+  .ui .box { border-color: #a9dcc3; } .src .box { border-color: #bccdf3; }
+  .pipe .box { border-color: #f3cf8b; } .llm .box { border-color: #cfc3f0; }
+  .box .num { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: #f5a623; color: #fff; font-size: 12px; font-weight: 800; margin-right: 6px; vertical-align: 1px; }
+  .box .tag { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #e3f5ec; color: #157a50; }
+  .tag.code { background: #e9f0ff; color: #3056b5; } .tag.ai { background: #efe9fb; color: #6b4fbb; }
+  .db .box { border-radius: 12px 12px 18px 18px / 12px 12px 26px 26px; text-align: center; border-color: #b9c5c0; }
+  .lbl { position: absolute; font-size: 11.5px; font-weight: 600; color: var(--muted); background: #fff; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); white-space: nowrap; transform: translate(-50%, -50%); }
+
+  .principles { position: absolute; display: flex; gap: 14px; }
+  .pr { flex: 1; background: var(--brand); color: #d8ebe2; border-radius: 14px; padding: 14px 16px; font-size: 13px; }
+  .pr b { color: #fff; display: block; font-size: 14.5px; margin-bottom: 3px; }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <h1>CQA · Conversation Quality Analytics — системный дизайн</h1>
+  <div class="sub">Freedom Broker · хакатон CQA · Python FastAPI + SQLite + Claude · интерфейс — веб-компоненты для Dynamics 365</div>
+
+  <!-- ИНТЕРФЕЙС -->
+  <div class="zone z-ui ui" style="left:40px;top:110px;width:1820px;height:150px"><div class="zt">Интерфейс · &lt;cqa-app&gt; · HTML/CSS/JS без сборки · встраивается в Dynamics 365</div>
+    <div class="box" id="u1" style="left:16px;top:40px;width:270px"><b>Обзор</b><span>средний балл, грубые ошибки, выполнение критериев, языки, стоимость</span></div>
+    <div class="box" id="u2" style="left:316px;top:40px;width:270px"><b>Диалоги</b><span>загрузка, фильтры, сводка 8 критериев, запуск оценки, прогресс</span></div>
+    <div class="box" id="u3" style="left:616px;top:40px;width:290px"><b>Карточка &lt;cqa-case&gt;</b><span>транскрипт ↔ критерии, переход к реплике [N], плеер звонка</span></div>
+    <div class="box" id="u4" style="left:936px;top:40px;width:270px"><b>Апелляции</b><span>оспорить критерий → проверяющий подтверждает / меняет</span></div>
+    <div class="box" id="u5" style="left:1236px;top:40px;width:270px"><b>Чек-листы</b><span>критерии, веса, шкалы, N/A, памятка · каждое сохранение — версия</span></div>
+    <div class="box" id="u6" style="left:1536px;top:40px;width:266px"><b>Точность</b><span>эталон (GT), совпадение по критериям, экспорт CSV / JSON</span></div>
+  </div>
+
+  <!-- ИСТОЧНИКИ -->
+  <div class="zone z-src src" style="left:40px;top:330px;width:250px;height:830px"><div class="zt">Источники</div>
+    <div class="box" id="s1" style="left:16px;top:190px;width:216px"><b>API организаторов</b><span>GET ?group_id=DEV / контрольный набор · Power Automate</span></div>
+    <div class="box" id="s2" style="left:16px;top:330px;width:216px"><b>Файл</b><span>JSON в формате API или TXT-транскрипт</span></div>
+    <div class="box" id="s3" style="left:16px;top:470px;width:216px"><b>audio_url звонка</b><span>ссылка на плеер записи → кнопка «Открыть плеер» в карточке</span></div>
+  </div>
+
+  <!-- БЭКЕНД -->
+  <div class="zone z-be" style="left:340px;top:330px;width:1120px;height:830px"><div class="zt">Бэкенд · Python FastAPI</div>
+    <div class="box" id="b0" style="left:16px;top:44px;width:250px"><b>REST API</b><span>/dialogs · /checklists · /evaluations · /appeals · /accuracy · /export</span></div>
+    <div class="box" id="b1" style="left:16px;top:300px;width:250px"><b>Импорт</b><span>нормализация ролей и меток времени (MM:SS / ISO), без дублей</span></div>
+    <div class="box" id="b2" style="left:16px;top:160px;width:250px"><b>Очередь оценки</b><span>asyncio, 8 диалогов параллельно, прогресс, повтор ошибок</span></div>
+    <div class="box" id="b3" style="left:16px;top:560px;width:250px"><b>Апелляции</b><span>решение + причина → пересчёт итога · ИИ / решение / финал</span></div>
+    <div class="box" id="b4" style="left:16px;top:700px;width:250px"><b>Сверка с эталоном</b><span>совпадение по критериям, ошибка итога</span></div>
+
+    <!-- КОНВЕЙЕР -->
+    <div class="zone z-pipe pipe" style="left:300px;top:96px;width:800px;height:716px"><div class="zt">Конвейер оценки одного диалога</div>
+      <div class="box" id="p1" style="left:16px;top:44px;width:390px"><b><span class="num">1</span>Подготовка</b><span>нумерация реплик [N]; факты о времени — первая реакция оператора, ожидания &gt; 3 мин</span><i class="tag code">код</i></div>
+      <div class="box" id="p2" style="left:16px;top:176px;width:390px"><b><span class="num">2</span>LLM × 3 независимых прогона</b><span>правила + чек-лист + памятка + транскрипт → строгий JSON по схеме: ответ, обоснование, реплики-доказательства</span><i class="tag ai">модель</i></div>
+      <div class="box" id="p3" style="left:16px;top:326px;width:390px"><b><span class="num">3</span>Валидация</b><span>ступени шкал, N/A только где разрешён, номера реплик существуют, цитаты сверены с текстом</span><i class="tag code">код</i></div>
+      <div class="box" id="p4" style="left:16px;top:458px;width:390px"><b><span class="num">4</span>Голосование</b><span>ответ большинства по каждому критерию, согласованность 3/3 · 2/3 → «на проверку»</span><i class="tag code">код</i></div>
+      <div class="box" id="p5" style="left:16px;top:590px;width:390px"><b><span class="num">5</span>Подсчёт итога</b><span>веса · перераспределение N/A · секции · округление 2 знака · флаг грубой ошибки</span><i class="tag code">код</i></div>
+
+      <div class="zone z-llm llm" style="left:450px;top:140px;width:334px;height:210px"><div class="zt">Модель</div>
+        <div class="box" id="m1" style="left:16px;top:40px;width:300px"><b>Claude Opus 5.5</b><span>adaptive thinking · effort high · structured output · кеш промпта</span></div>
+        <div class="box" id="m2" style="left:16px;top:128px;width:300px"><b>Режимы подключения</b><span>Anthropic API · claude -p (Claude Code) · mock</span></div>
+      </div>
+      <div class="box" id="p6" style="left:450px;top:560px;width:334px;background:#fffdf7"><b>Результат оценки</b><span>по каждому критерию: ответ, баллы, вес, обоснование, реплики, проверенный участок, причина N/A; итог и секции</span></div>
+    </div>
+  </div>
+
+  <!-- ХРАНИЛИЩЕ -->
+  <div class="zone z-db db" style="left:1510px;top:330px;width:350px;height:830px"><div class="zt">SQLite · документы JSON</div>
+    <div class="box" id="d1" style="left:16px;top:44px;width:316px"><b>dialogs</b><span>транскрипты, язык, канал, audio_url</span></div>
+    <div class="box" id="d2" style="left:16px;top:170px;width:316px"><b>checklists v1…vN</b><span>неизменяемые версии, одна активная</span></div>
+    <div class="box" id="d3" style="left:16px;top:330px;width:316px"><b>evaluations</b><span>привязаны к версии чек-листа · модель, токены, стоимость, сырой ответ</span></div>
+    <div class="box" id="d4" style="left:16px;top:560px;width:316px"><b>appeals</b><span>комментарий, решение, причина, итог до/после</span></div>
+    <div class="box" id="d5" style="left:16px;top:700px;width:316px"><b>ground_truth</b><span>эталонные оценки для замера точности</span></div>
+  </div>
+
+  <!-- ПРИНЦИПЫ -->
+  <div class="principles" style="left:40px;top:1220px;width:1820px">
+    <div class="pr"><b>Модель отвечает — код считает</b>Модель решает только «да / нет / ступень / N/A» с обоснованием; время ответа и итог считаются кодом по правилам PDF.</div>
+    <div class="pr"><b>Точность</b>3 прогона с голосованием, факты о времени, проверка каждого ответа, калибровка по эталону на странице «Точность».</div>
+    <div class="pr"><b>Настройка без кода</b>Новый критерий — через интерфейс: сохранили версию → переоценили. Старые оценки сохраняют свою версию.</div>
+    <div class="pr"><b>Прозрачность</b>В карточке — реплики-доказательства, согласованность прогонов, сырой ответ модели, токены и стоимость.</div>
+  </div>
+
+  <svg id="wires"><defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b7a74"/></marker>
+    <marker id="arA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5a623"/></marker>
+    <marker id="arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6b4fbb"/></marker>
+  </defs></svg>
+</div>
+<script>
+  const svg = document.getElementById("wires");
+  const cv = document.getElementById("canvas").getBoundingClientRect();
+  const R = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { l: r.left - cv.left, t: r.top - cv.top, r: r.right - cv.left, b: r.bottom - cv.top, cx: (r.left + r.right) / 2 - cv.left, cy: (r.top + r.bottom) / 2 - cv.top }; };
+  // ломаная со скруглёнными углами
+  function poly(pts, rad = 14) {
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+      const r1 = Math.min(rad, Math.hypot(x1 - x0, y1 - y0) / 2), r2 = Math.min(rad, Math.hypot(x2 - x1, y2 - y1) / 2);
+      const a = [x1 - Math.sign(x1 - x0) * r1, y1 - Math.sign(y1 - y0) * r1], b = [x1 + Math.sign(x2 - x1) * r2, y1 + Math.sign(y2 - y1) * r2];
+      d += ` L${a[0]},${a[1]} Q${x1},${y1} ${b[0]},${b[1]}`;
+    }
+    const e = pts.at(-1);
+    return d + ` L${e[0]},${e[1]}`;
+  }
+  function wire(pts, style = "", label = "", at = null) {
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const color = style.includes("pipe") ? "#f5a623" : style.includes("llm") ? "#6b4fbb" : "#6b7a74";
+    const mk = style.includes("pipe") ? "url(#arA)" : style.includes("llm") ? "url(#arP)" : "url(#ar)";
+    p.setAttribute("d", poly(pts)); p.setAttribute("fill", "none"); p.setAttribute("stroke", color);
+    p.setAttribute("stroke-width", style.includes("pipe") ? 2.4 : 1.8);
+    if (style.includes("dash")) p.setAttribute("stroke-dasharray", "6 5");
+    p.setAttribute("marker-end", mk);
+    if (style.includes("both")) p.setAttribute("marker-start", mk);
+    svg.appendChild(p);
+    if (label) {
+      const [lx, ly] = at || pts[Math.floor(pts.length / 2)];
+      const l = document.createElement("div"); l.className = "lbl"; l.textContent = label; l.style.left = lx + "px"; l.style.top = ly + "px";
+      document.getElementById("canvas").appendChild(l);
+    }
+  }
+  const [u3, b0, b1, b2, b3, b4, s1, s2] = ["u3", "b0", "b1", "b2", "b3", "b4", "s1", "s2"].map(R);
+  const [p1, p2, p3, p4, p5, p6, m1] = ["p1", "p2", "p3", "p4", "p5", "p6", "m1"].map(R);
+  const [d1, d2, d3, d4, d5] = ["d1", "d2", "d3", "d4", "d5"].map(R);
+  const gapX = (b0.r + p1.l) / 2 - 8;            // коридор между левой колонкой и конвейером
+  const dbX = d1.l - 26;                          // коридор перед хранилищем
+  const topY = R("p1").t - 62;                    // коридор над конвейером
+  const botY = 1178, botY2 = 1192;                // коридор под бэкендом
+
+  wire([[u3.cx, u3.b], [u3.cx, 295], [b0.cx, 295], [b0.cx, b0.t - 2]], "both", "HTTP / JSON", [ (u3.cx + b0.cx) / 2, 295 ]);
+  wire([[b0.cx, b0.b], [b0.cx, b2.t - 2]], "", "запуск");
+  wire([[s1.r, s1.cy], [s1.r + 26, s1.cy], [s1.r + 26, b1.cy - 10], [b1.l - 2, b1.cy - 10]]);
+  wire([[s2.r, s2.cy], [s2.r + 26, s2.cy], [s2.r + 26, b1.cy + 10], [b1.l - 2, b1.cy + 10]]);
+  wire([[b2.r, b2.cy], [p1.l - 2, b2.cy]], "", "", null);
+  wire([[b1.r, b1.cy], [gapX + 12, b1.cy], [gapX + 12, topY], [dbX, topY], [dbX, d1.cy], [d1.l - 2, d1.cy]], "", "сохранить", [(p1.l + d1.l) / 2, topY]);
+  for (const [a, b] of [[p1, p2], [p2, p3], [p3, p4], [p4, p5]]) wire([[a.l + 60, a.b], [a.l + 60, b.t - 2]], "pipe");
+  wire([[p2.r, p2.cy], [m1.l - 2, p2.cy]], "llm-both", "×3");
+  wire([[p5.r, p5.cy], [p5.r + 22, p5.cy], [p5.r + 22, p6.cy], [p6.l - 2, p6.cy]], "pipe");
+  wire([[p6.r, p6.cy], [dbX + 6, p6.cy], [dbX + 6, d3.cy], [d3.l - 2, d3.cy]], "", "сохранить");
+  wire([[d2.l, d2.cy], [dbX - 14, d2.cy], [dbX - 14, p1.t + 20], [p1.r + 2, p1.t + 20]], "dash", "активная версия", [(p1.r + dbX) / 2 + 30, p1.t + 20]);
+  wire([[b3.r, b3.cy], [gapX - 4, b3.cy], [gapX - 4, botY], [dbX + 14, botY], [dbX + 14, d4.cy], [d4.l - 2, d4.cy]], "", "апелляции и решения", [(p1.l + d1.l) / 2, botY]);
+  wire([[b4.r, b4.cy], [gapX - 16, b4.cy], [gapX - 16, botY2], [dbX + 2, botY2], [dbX + 2, d5.cy], [d5.l - 2, d5.cy]]);
+</script>
+</body>
+</html>

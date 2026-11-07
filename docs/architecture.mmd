@@ -1,0 +1,83 @@
+flowchart LR
+  %% CQA — Conversation Quality Analytics: системный дизайн
+
+  subgraph SRC["Источники данных"]
+    direction TB
+    API["API организаторов<br/>GET ?group_id=DEV / контроль<br/><i>Power Automate</i>"]
+    FILE["Загрузка файла<br/>JSON / TXT-транскрипт"]
+    AUDIO["audio_url звонка<br/><i>страница плеера</i>"]
+  end
+
+  subgraph UI["Интерфейс · HTML/CSS/JS веб-компоненты · встраивается в Dynamics 365"]
+    direction TB
+    DASH["Обзор<br/>KPI, критерии, языки"]
+    LIST["Диалоги<br/>фильтры, сводка 8 критериев,<br/>запуск оценки, прогресс"]
+    CASE["&lt;cqa-case&gt; Карточка кейса<br/>транскрипт ↔ критерии,<br/>переход к реплике [N]"]
+    APP["Апелляции<br/>очередь проверяющего,<br/>решение + причина"]
+    CL["Чек-листы<br/>критерии, веса, шкалы, N/A,<br/>памятка · версии"]
+    ACC["Точность<br/>эталон (GT), совпадение,<br/>экспорт CSV/JSON"]
+  end
+
+  subgraph BE["Бэкенд · Python FastAPI"]
+    direction TB
+    REST["REST API<br/>/dialogs /checklists /evaluations<br/>/appeals /accuracy /export"]
+    INGEST["Импорт и нормализация<br/>роли, метки времени MM:SS / ISO,<br/>без дублей"]
+    JOBS["Очередь оценки<br/>asyncio, 8 диалогов параллельно"]
+
+    subgraph PIPE["Конвейер оценки одного диалога"]
+      direction TB
+      P1["1 · Подготовка<br/>нумерация реплик [N]<br/>факты о времени: первая реакция,<br/>паузы &gt; 3 мин — считает код"]
+      P2["2 · LLM × 3 прогона<br/>правила + чек-лист + памятка<br/>→ строгий JSON по схеме"]
+      P3["3 · Валидация<br/>ступени шкал, N/A только где разрешён,<br/>номера реплик, сверка цитат"]
+      P4["4 · Голосование<br/>ответ большинства по критерию,<br/>согласованность 3/3 · 2/3"]
+      P5["5 · Подсчёт итога — код<br/>веса · перераспределение N/A ·<br/>секции · округление 2 знака ·<br/>флаг грубой ошибки"]
+      P1 --> P2 --> P3 --> P4 --> P5
+    end
+
+    APPEAL["Апелляции<br/>оспорен критерий → решение →<br/>пересчёт: ИИ · решение · финал"]
+    GT["Сверка с эталоном<br/>совпадение по критериям,<br/>ошибка итога"]
+  end
+
+  subgraph LLM["Модель"]
+    direction TB
+    CLAUDE["Claude Opus 5.5<br/>adaptive thinking, effort high,<br/>structured output"]
+    MODE["Режимы: Anthropic API · claude -p · mock"]
+  end
+
+  subgraph DB["SQLite · документы JSON"]
+    direction TB
+    T1[("dialogs")]
+    T2[("checklists v1…vN<br/>неизменяемые версии")]
+    T3[("evaluations<br/>привязаны к версии")]
+    T4[("appeals")]
+    T5[("ground_truth")]
+  end
+
+  API --> INGEST
+  FILE --> INGEST
+  AUDIO -. ссылка .-> CASE
+  INGEST --> T1
+
+  UI <--> REST
+  REST --> JOBS --> P1
+  P2 <--> CLAUDE
+  P5 --> T3
+  CL --> T2
+  REST --> APPEAL --> T4
+  APPEAL --> T3
+  REST --> GT --> T5
+  T2 -. активная версия .-> P1
+  T1 --> P1
+
+  classDef src fill:#e9f0ff,stroke:#3056b5,color:#13201b
+  classDef ui fill:#e3f5ec,stroke:#1fa971,color:#13201b
+  classDef be fill:#ffffff,stroke:#155c43,color:#13201b
+  classDef pipe fill:#fff6e5,stroke:#f5a623,color:#13201b
+  classDef llm fill:#f3f1fb,stroke:#6b4fbb,color:#13201b
+  classDef db fill:#f4f6f5,stroke:#5d6b65,color:#13201b
+  class API,FILE,AUDIO src
+  class DASH,LIST,CASE,APP,CL,ACC ui
+  class REST,INGEST,JOBS,APPEAL,GT be
+  class P1,P2,P3,P4,P5 pipe
+  class CLAUDE,MODE llm
+  class T1,T2,T3,T4,T5 db

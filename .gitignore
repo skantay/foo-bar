@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+data/cqa.db*
+.env
+.DS_Store
+data/dev.json
+CQA_Hackathon_Student_Guide_v3 1.pdf
