@@ -130,7 +130,7 @@ add(dialog("syn-ru-07", "RU", "Не пришли дивиденды по Apple."
 # 08 — EN: два вопроса, ответ только на один
 add(dialog("syn-en-08", "EN", "How much is the fee for withdrawing to a bank card, and how long does it take?",
            "Withdrawal fees depend on your tariff.", "I need an agent.", [
-    (30, "operator", "Hi, I'm Emma. The fee for withdrawing to a bank card on your tariff is 0.1%, minimum 5 USD."),
+    (30, "operator", "Hi, I'm Emma. The fee for withdrawing to a bank card is 0.1%, minimum 5 USD, on all tariffs."),
     (55, "client", "Okay, thanks."),
     (75, "operator", "You're welcome! Anything else I can help with? Have a nice day!"),
 ]), {"contact": "Да", "identification": "N/A", "consultation": 10, "closing": "Да", "gross_errors": "Нет"},
