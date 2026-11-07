@@ -803,3 +803,16 @@ cqa-app .cqa-spark { left: var(--x); bottom: var(--y); width: var(--s); height: 
 }
 @keyframes cqa-twinkle { from { filter: brightness(.7); } to { filter: brightness(1.6); } }
 
+
+/* =====================================================================
+   Золотая нить: одна тонкая линия ровно по границе меню и рабочей области
+   ===================================================================== */
+cqa-app .cqa-shell { position: relative; }
+cqa-app .cqa-shell::after {
+  content: ""; position: fixed; top: 0; bottom: 0; left: 232px; width: 1.5px; transform: translateX(-50%); z-index: 20; pointer-events: none;
+  background: linear-gradient(180deg, rgba(240, 199, 102, 0) 0%, #c9953a 6%, #f3d27e 22%, #d9a441 40%, #f7dc93 58%, #c9953a 78%, #e8bf62 92%, rgba(240, 199, 102, 0) 100%) 0 0 / 100% 200%;
+  box-shadow: 0 0 4px rgba(240, 199, 102, .55), 0 0 10px rgba(217, 164, 65, .22);
+  animation: cqa-thread 14s ease-in-out infinite alternate;
+}
+@keyframes cqa-thread { from { background-position: 0 0; } to { background-position: 0 100%; } }
+@media (max-width: 760px) { cqa-app .cqa-shell::after { display: none; } }
