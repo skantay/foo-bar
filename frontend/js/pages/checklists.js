@@ -57,6 +57,10 @@ export async function mount(el, ctx, [selId], top) {
 
   // ---------- редактор ----------
   function renderEditor() {
+    // шкала {min, max} без ступеней (чек-лист из API) → явные ступени, чтобы их можно было править
+    draft.criteria.forEach((c) => {
+      if (c.type === "scale" && !c.scale?.steps?.length) c.scale = { ...c.scale, steps: [c.scale?.min ?? 0, c.scale?.max ?? 1] };
+    });
     const sum = draft.criteria.filter((c) => c.type !== "flag").reduce((s, c) => s + (+c.weight || 0), 0);
     $("[data-ed]").innerHTML = `
       <div class="cqa-card cqa-card-b" style="margin-bottom:14px">

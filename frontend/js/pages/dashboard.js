@@ -5,7 +5,7 @@ export async function mount(el, ctx, _params, top) {
   ctx.setTitle("Обзор качества", `${s.checklist.name} · версия ${s.checklist.version}`);
   top.innerHTML = `<a class="cqa-btn primary" href="#/dialogs">${icon.chat} К диалогам</a>`;
 
-  const passRate = s.evaluated ? Math.round((s.passed / s.evaluated) * 100) : null;
+  const passRate = s.evaluated && s.passed != null ? Math.round((s.passed / s.evaluated) * 100) : null;
   const maxBar = Math.max(1, ...s.distribution);
   const crit = Object.entries(s.criteria);
 
@@ -13,7 +13,7 @@ export async function mount(el, ctx, _params, top) {
     ${!s.evaluated ? `<div class="cqa-alert info" style="margin-bottom:16px">${icon.alert}<div>Пока нет оценок по этой версии чек-листа. Откройте <a href="#/dialogs">Диалоги</a> и запустите оценку.</div></div>` : ""}
     <div class="cqa-kpis">
       ${kpi("Средний балл", s.avg_total == null ? "—" : `${fmtScore(s.avg_total)}<small>/100</small>`, `${s.evaluated} из ${s.dialogs} диалогов оценено`, scoreClass(s.avg_total))}
-      ${kpi("Прошли порог", passRate == null ? "—" : `${passRate}<small>%</small>`, `${s.passed} кейсов`)}
+      ${kpi("Прошли порог", passRate == null ? "—" : `${passRate}<small>%</small>`, s.passed == null ? "порог в чек-листе не задан" : `${s.passed} кейсов`)}
       ${kpi("Грубые ошибки", s.critical, "кейсов с критичным нарушением", s.critical ? "lo" : "")}
       ${kpi("Открытые апелляции", s.open_appeals, `<a href="#/appeals">к очереди проверяющего →</a>`)}
       ${kpi("Стоимость оценки", money(s.avg_cost_usd), s.avg_latency_s != null ? `≈ ${s.avg_latency_s} с на диалог` : "")}

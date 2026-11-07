@@ -46,26 +46,41 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 # ---------- данные ----------
 
+SPEAKER_ALIAS = {"оператор": "operator", "agent": "operator", "клиент": "client", "customer": "client",
+                 "user": "client", "бот": "bot", "система": "system"}
+
+
+def speaker(s) -> str:
+    s = str(s or "").strip().lower()
+    return SPEAKER_ALIAS.get(s, s)
+
+
 def normalize_record(rec: dict, dataset: str, source: str) -> dict:
     cid = rec.get("conversation_id") or rec.get("id")
     transcript = rec.get("transcript")
     if not cid or not isinstance(transcript, list):
         raise ValueError("ожидаются поля conversation_id и transcript[]")
-    channel = rec.get("channel") or ("voice call" if rec.get("audio_url") else "agent chat")
+    audio = rec.get("audio_url") or None
+    if audio and not re.match(r"https?://", str(audio), re.I):  # в ссылку плеера — только http(s)
+        audio = None
+    channel = rec.get("channel") or ("voice call" if audio else "agent chat")
     return {
         "id": str(cid),
         "dataset": dataset,
         "source": source,
         "channel": channel,
         "language": (rec.get("language") or "").upper() or "RU",
-        "audio_url": rec.get("audio_url") or None,
-        "transcript": [{"timestamp": t.get("timestamp", ""), "speaker": (t.get("speaker") or "").lower(),
+        "audio_url": audio,
+        "transcript": [{"timestamp": t.get("timestamp", ""), "speaker": speaker(t.get("speaker")),
                         "text": t.get("text", "")} for t in transcript],
     }
 
 
-def import_payload(payload, dataset: str, source: str) -> list[str]:
-    """Принимает ответ API организаторов, массив записей или одну запись."""
+def import_payload(payload, dataset: str, source: str) -> tuple[list[str], str]:
+    """Принимает ответ API организаторов, массив записей или одну запись.
+
+    Возвращает id и фактический набор: у ответа API он берётся из dataset_group_id.
+    """
     if isinstance(payload, dict) and "data" in payload:
         if payload.get("isSuccess") is False:
             raise HTTPException(502, f"API организаторов вернул ошибку: {payload.get('error')}")
@@ -88,7 +103,7 @@ def import_payload(payload, dataset: str, source: str) -> list[str]:
             d["created_at"] = old["created_at"]
         db.put("dialogs", d)
         ids.append(d["id"])
-    return ids
+    return ids, dataset
 
 
 def source_url(group_id: str) -> str:
@@ -106,8 +121,12 @@ async def sync_dialogs(body: dict = Body(...)):
         r = await http.get(source_url(group_id))
     if r.status_code != 200:
         raise HTTPException(502, f"API организаторов: HTTP {r.status_code}")
-    ids = import_payload(r.json(), group_id, "api")
-    return {"imported": len(ids), "dataset": group_id, "ids": ids}
+    try:
+        payload = r.json()
+    except ValueError:
+        raise HTTPException(502, "API организаторов вернул не JSON")
+    ids, dataset = import_payload(payload, group_id, "api")
+    return {"imported": len(ids), "dataset": dataset, "ids": ids}
 
 
 @app.post("/api/dialogs/upload")
@@ -117,7 +136,7 @@ async def upload_dialogs(file: UploadFile = File(...), dataset: str = "UPLOAD"):
         payload = json.loads(raw.decode("utf-8-sig"))
     except (UnicodeDecodeError, json.JSONDecodeError):
         payload = parse_plain_transcript(raw.decode("utf-8", errors="replace"), Path(file.filename or "dialog").stem)
-    ids = import_payload(payload, dataset, "upload")
+    ids, dataset = import_payload(payload, dataset, "upload")
     return {"imported": len(ids), "dataset": dataset, "ids": ids}
 
 
@@ -132,9 +151,7 @@ def parse_plain_transcript(text: str, cid: str) -> dict:
         if line.startswith("[") and "]" in line:
             ts, line = line[1:line.index("]")], line[line.index("]") + 1:].strip()
         sp, _, msg = line.partition(":")
-        sp = sp.strip().lower()
-        alias = {"оператор": "operator", "клиент": "client", "бот": "bot", "система": "system", "agent": "operator"}
-        sp = alias.get(sp, sp)
+        sp = speaker(sp)
         if sp not in ("operator", "client", "bot", "system"):
             sp, msg = "client", line
         turns.append({"timestamp": ts, "speaker": sp, "text": msg.strip()})
@@ -142,9 +159,13 @@ def parse_plain_transcript(text: str, cid: str) -> dict:
 
 
 def latest_evaluations() -> dict[tuple[str, str], dict]:
+    """Последняя оценка по паре (диалог, чек-лист). Завершённая важнее более новой незавершённой:
+    упавшая или прерванная переоценка не должна прятать готовый результат."""
     out = {}
-    for e in db.all("evaluations"):
-        out[(e["dialog_id"], e["checklist_id"])] = e  # отсортированы по created_at
+    for e in db.all("evaluations"):  # отсортированы по created_at
+        k = (e["dialog_id"], e["checklist_id"])
+        if e.get("status") == "done" or (out.get(k) or {}).get("status") != "done":
+            out[k] = e
     return out
 
 
@@ -185,7 +206,8 @@ def eval_brief(e: dict | None) -> dict | None:
             "total": fr.get("total"), "ai_total": (e.get("ai_result") or {}).get("total"),
             "critical_errors": fr.get("critical_errors", []), "passed": fr.get("passed"),
             "open_appeals": e.get("open_appeals", 0), "error": e.get("error"), "marks": criteria_marks(e),
-            "checklist_id": e["checklist_id"], "created_at": e["created_at"]}
+            "checklist_id": e["checklist_id"], "checklist_version": e.get("checklist_version"),
+            "created_at": e["created_at"]}
 
 
 @app.get("/api/dialogs")
@@ -233,9 +255,28 @@ def datasets():
 
 # ---------- чек-листы ----------
 
+def num(v, what: str) -> float:
+    """Число из JSON (в т.ч. строкой «10»); иначе 400, а не падение оценки позже."""
+    try:
+        if isinstance(v, bool):
+            raise ValueError
+        return float(v)
+    except (TypeError, ValueError):
+        raise HTTPException(400, f"{what}: ожидается число, получено {v!r}")
+
+
 def validate_checklist(c: dict) -> None:
     if not c.get("name"):
         raise HTTPException(400, "Укажите название чек-листа")
+    if c.get("pass_threshold") not in (None, ""):
+        c["pass_threshold"] = num(c["pass_threshold"], "Порог прохождения")
+    if c.get("first_response_limit_s") not in (None, ""):
+        c["first_response_limit_s"] = int(num(c["first_response_limit_s"], "Порог первой реакции"))
+    if c.get("critical_mode") not in (None, "flag", "zero"):
+        raise HTTPException(400, "critical_mode: flag или zero")
+    r = c.get("rounding") or {}
+    if "digits" in r:
+        r["digits"] = int(num(r["digits"], "Округление"))
     crits = c.get("criteria") or []
     if not crits:
         raise HTTPException(400, "Добавьте хотя бы один критерий")
@@ -251,14 +292,16 @@ def validate_checklist(c: dict) -> None:
         if x["type"] == "flag":
             x["weight"] = 0
             x["na_allowed"] = False
-        elif float(x.get("weight") or 0) <= 0:
-            raise HTTPException(400, f"Критерий {x['id']}: вес должен быть > 0")
+        else:
+            x["weight"] = num(x.get("weight") or 0, f"Критерий {x['id']}: вес")
+            if x["weight"] <= 0:
+                raise HTTPException(400, f"Критерий {x['id']}: вес должен быть > 0")
         if x["type"] == "scale":
             s = x.setdefault("scale", {})
-            steps = sorted({float(v) for v in s.get("steps") or []})
+            steps = sorted({num(v, f"Критерий {x['id']}: ступень") for v in s.get("steps") or []})
             if steps:
                 s["steps"], s["min"], s["max"] = steps, steps[0], steps[-1]
-            if len(steps) == 1 or float(s.get("max", 0)) <= float(s.get("min", 0)):
+            if len(steps) == 1 or num(s.get("max", 0), "max") <= num(s.get("min", 0), "min"):
                 raise HTTPException(400, f"Критерий {x['id']}: шкала должна содержать хотя бы два значения")
     if not any(x["type"] != "flag" for x in crits):
         raise HTTPException(400, "Нужен хотя бы один критерий с весом")
@@ -344,12 +387,16 @@ def recompute(e: dict, checklist: dict) -> dict:
     return e
 
 
-async def run_one(job: dict, dialog: dict, checklist: dict, sem: asyncio.Semaphore) -> None:
-    e = {"id": db.new_id("ev"), "dialog_id": dialog["id"], "checklist_id": checklist["id"],
-         "checklist_version": checklist["version"], "checklist_name": checklist["name"],
-         "job_id": job["id"], "status": "running"}
+def new_evaluation(job: dict, dialog: dict, checklist: dict) -> dict:
+    """Запись создаётся сразу при запуске: карточка видит «running», а не прошлую оценку как готовую."""
+    return db.put("evaluations", {
+        "id": db.new_id("ev"), "dialog_id": dialog["id"], "checklist_id": checklist["id"],
+        "checklist_version": checklist["version"], "checklist_name": checklist["name"],
+        "job_id": job["id"], "status": "running"})
+
+
+async def run_one(job: dict, e: dict, dialog: dict, checklist: dict, sem: asyncio.Semaphore) -> None:
     async with sem:
-        db.put("evaluations", e)
         try:
             res = await evaluator.evaluate(dialog, checklist)
             answers = res["answers"]
@@ -370,9 +417,9 @@ async def run_one(job: dict, dialog: dict, checklist: dict, sem: asyncio.Semapho
         db.put("jobs", job)
 
 
-async def run_job(job: dict, dialogs: list[dict], checklist: dict) -> None:
+async def run_job(job: dict, pairs: list[tuple[dict, dict]], checklist: dict) -> None:
     sem = asyncio.Semaphore(CONCURRENCY)
-    await asyncio.gather(*(run_one(job, d, checklist, sem) for d in dialogs))
+    await asyncio.gather(*(run_one(job, e, d, checklist, sem) for e, d in pairs))
     job["status"] = "done"
     job["finished_at"] = db.now()
     db.put("jobs", job)
@@ -399,7 +446,8 @@ async def run_evaluations(body: dict = Body(...)):
            "failed": [], "cost_usd": 0.0, "model": evaluator.MODEL if evaluator.has_llm() else evaluator.backend()}
     db.put("jobs", job)
     JOBS[job["id"]] = job
-    asyncio.get_running_loop().create_task(run_job(job, dialogs, checklist))
+    pairs = [(new_evaluation(job, d, checklist), d) for d in dialogs]
+    asyncio.get_running_loop().create_task(run_job(job, pairs, checklist))
     return job
 
 
@@ -500,9 +548,10 @@ def decide_appeal(aid: str, body: dict = Body(...)):
         # «Нет» / нижняя ступень — это 0 баллов по определению, ручная корректировка к ним не применяется
         if mp not in (None, "") and not na and crit.get("type") != "flag" and value > lo:
             w = float(crit["weight"])
-            if not 0 <= float(mp) <= w:
+            mp = num(mp, "Баллы вручную")
+            if not 0 <= mp <= w:
                 raise HTTPException(400, f"Баллы вручную — от 0 до {w:g}")
-            manual_ratio = round(float(mp) / w, 4)
+            manual_ratio = round(mp / w, 4)
         e.setdefault("overrides", {})[a["criterion_id"]] = {
             "value": value, "na": na, "critical_error": bool(body.get("critical_error", False)),
             "manual_ratio": manual_ratio, "manual_points": None if manual_ratio is None else float(mp),
@@ -541,13 +590,16 @@ def stats(checklist_id: str | None = None):
     by_lang = {}
     for e in latest:
         d = db.get("dialogs", e["dialog_id"]) or {}
-        by_lang.setdefault(d.get("language", "?"), []).append(e["final_result"]["total"] or 0)
+        if e["final_result"]["total"] is not None:  # итог N/A — не ноль
+            by_lang.setdefault(d.get("language", "?"), []).append(e["final_result"]["total"])
     costs = [e.get("cost_usd", 0) for e in latest if e.get("model") != "mock"]
     return {
         "checklist": {"id": checklist["id"], "name": checklist["name"], "version": checklist["version"]},
         "evaluated": len(latest), "dialogs": len(db.all("dialogs")),
         "avg_total": round(sum(totals) / len(totals), 1) if totals else None,
-        "passed": sum(1 for e in latest if e["final_result"]["passed"]),
+        # без порога в чек-листе «прошёл/не прошёл» не определено
+        "passed": None if checklist.get("pass_threshold") in (None, "")
+        else sum(1 for e in latest if e["final_result"]["passed"]),
         "critical": sum(1 for e in latest if e["final_result"]["critical_errors"]),
         "open_appeals": sum(1 for a in db.all("appeals") if a["status"] == "open"),
         "criteria": per_crit,
@@ -624,6 +676,10 @@ def export(checklist_id: str | None = None, dataset: str | None = None, fmt: str
 OFFICIAL_CODE = {"needs": "discovery", "management": "dialogue", "closing": "closure", "gross_errors": "critical"}
 OFFICIAL_CODES = ["contact", "discovery", "identification", "consultation", "empathy", "dialogue", "closure", "critical"]
 TEAM_NAME = os.getenv("CQA_TEAM_NAME", "foo-bar")
+# допустимые value по Appendix Results: true/false, null = N/A, число = ступень шкалы
+_YN, _YNN = {True, False}, {True, False, None}
+OFFICIAL_VALUES = {"contact": _YN, "discovery": _YNN, "identification": _YNN, "consultation": {0, 5, 10, 15, 20, None},
+                   "empathy": _YN, "dialogue": {0, 4, 7, 10}, "closure": _YNN, "critical": _YN}
 
 
 def official_value(c: dict, a: dict | None):
@@ -641,11 +697,14 @@ def official_record(d: dict, e: dict | None, checklist: dict) -> dict:
         reason = (e or {}).get("error") or ("Оценка ещё не завершена" if e else "Диалог не оценён")
         return {"conversation_id": d["id"], "status": "error", "criteria": [], "score": None, "error": reason}
     fa = final_answers(e)
+    overrides = e.get("overrides") or {}
     criteria = []
     for c in checklist["criteria"]:
         a = fa.get(c["id"]) or {}
         turns = sorted({x["turn"] + 1 for x in a.get("evidence") or []})  # нумерация с 1 по всему транскрипту
         text = (a.get("na_reason") if a.get("na") else a.get("explanation")) or ""
+        if c["id"] in overrides:  # обоснование ИИ противоречило бы изменённому значению
+            text = f"{c['name']} — {answer_label(c, a)} (решение проверяющего). {overrides[c['id']]['reason']}"
         criteria.append({"criterion_id": OFFICIAL_CODE.get(c["id"], c["id"]), "value": official_value(c, a),
                          # в тексте модель ссылается на [N] с нуля — приводим к нумерации с 1, как evidence_turns
                          "rationale": re.sub(r"\[(\d+)\]", lambda m: f"[{int(m.group(1)) + 1}]", text),
@@ -673,6 +732,14 @@ def validate_results(doc: dict, expected_ids: list[str]) -> list[str]:
             missing = [c for c in OFFICIAL_CODES if c not in codes]
             problems.append(f"{r['conversation_id']}: нет кодов {missing}, лишние {extra}. Если критерий заменён, "
                             f"впишите ему код заменённого в «Чек-листы» → критерий → «Ещё» → «ID (для экспорта)»")
+        for x in r["criteria"]:
+            dom = OFFICIAL_VALUES.get(x["criterion_id"])
+            v = x["value"]
+            ok = dom is None or (v is None and None in dom) or (
+                v is not None and isinstance(v, bool) == (True in dom) and v in dom)
+            if not ok:
+                problems.append(f"{r['conversation_id']}.{x['criterion_id']}: недопустимое value {v!r} "
+                                f"(допустимо {sorted(map(str, dom))}) — проверьте критерий вручную")
     return problems
 
 
@@ -712,14 +779,25 @@ def gt_value(c: dict, v):
 @app.post("/api/ground-truth")
 def save_ground_truth(body=Body(...)):
     """Принимает [{conversation_id, criteria: {id: "Да"|"Нет"|"N/A"|число}, total?}] или {records: [...]}."""
-    recs = body.get("records") if isinstance(body, dict) else body
+    recs = (body.get("records") or body.get("results")) if isinstance(body, dict) else body
+    ours = {v: k for k, v in OFFICIAL_CODE.items()}  # коды организаторов → наши id
     n = 0
     for r in recs or []:
+        if not isinstance(r, dict) or r.get("status") == "error":
+            continue
         cid = r.get("conversation_id")
         crit = r.get("criteria") or {}
-        crit = {k: (v.get("answer") if isinstance(v, dict) else v) for k, v in crit.items()}
+        if isinstance(crit, list):  # формат results.json: [{criterion_id, value}], null = N/A
+            crit = {x.get("criterion_id"): "N/A" if x.get("value") is None else x.get("value")
+                    for x in crit if isinstance(x, dict)}
+        crit = {ours.get(k, k): (v.get("answer") if isinstance(v, dict) else v) for k, v in crit.items()}
+        total = r.get("total", (r.get("score") or {}).get("final_score"))
+        try:
+            total = None if total in (None, "") else float(total)
+        except (TypeError, ValueError):
+            total = None
         if cid and crit:
-            db.put("ground_truth", {"id": cid, "criteria": crit, "total": r.get("total"), "source": r.get("source", "upload")})
+            db.put("ground_truth", {"id": cid, "criteria": crit, "total": total, "source": r.get("source", "upload")})
             n += 1
     return {"saved": n}
 
@@ -824,7 +902,7 @@ def seed():
             db.put("evaluations", e)
     dev = ROOT / "data" / "dev.json"
     if not db.all("dialogs") and dev.exists():
-        n = len(import_payload(json.loads(dev.read_text("utf-8")), "DEV", "api"))
+        n = len(import_payload(json.loads(dev.read_text("utf-8")), "DEV", "api")[0])
         log.info("imported %d DEV dialogs from cache", n)
 
 

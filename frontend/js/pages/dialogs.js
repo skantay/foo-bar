@@ -1,4 +1,4 @@
-import { channelIcon, esc, icon, langTag, modal, money, scorePill, statusChip, toast } from "../ui.js";
+import { channelIcon, esc, fmtScore, icon, langTag, modal, money, scorePill, statusChip, toast } from "../ui.js";
 
 const F = { q: "", lang: "", channel: "", status: "", dataset: "", crit: "", sort: "id", dir: 1 };
 const MARK_TEXT = { yes: "выполнен", ok: "нет нарушений", part: "частично", no: "не выполнен", na: "N/A", crit: "грубая ошибка", none: "—" };
@@ -89,7 +89,7 @@ export async function mount(el, ctx, _params, top) {
         <td><div class="cqa-preview">${esc(d.preview)}</div></td>
         <td class="cqa-muted">${d.turns}<span class="cqa-faint"> · оп. ${d.operator_turns}</span></td>
         <td><span class="cqa-marks">${(ev?.marks || []).map((m) => `<i class="cqa-dot m-${m.m}" title="${esc(m.name)}: ${esc(m.label ?? MARK_TEXT[m.m])}"></i>`).join("")}</span></td>
-        <td>${scorePill(ev?.total)}${ev && ev.ai_total !== ev.total && ev.total != null ? `<div class="cqa-faint" style="font-size:11px">ИИ: ${ev.ai_total}</div>` : ""}</td>
+        <td>${scorePill(ev?.total)}${ev && ev.ai_total !== ev.total && ev.total != null ? `<div class="cqa-faint" style="font-size:11px">ИИ: ${fmtScore(ev.ai_total)}</div>` : ""}</td>
         <td>${statusChip(ev)} ${ev?.critical_errors?.length ? `<span class="cqa-chip crit" title="Грубая ошибка">${icon.flag.replace("<svg", '<svg width="11" height="11"')}</span>` : ""}</td>
         <td style="color:var(--faint)">›</td>
       </tr>`;
@@ -129,12 +129,12 @@ export async function mount(el, ctx, _params, top) {
     if (a === "run") runDialog();
   });
   top.querySelector("[data-file]").addEventListener("change", async (e) => {
-    let n = 0;
+    let n = 0, ds = "";
     for (const f of e.target.files) {
-      try { n += (await ctx.api.upload(f, "UPLOAD")).imported; } catch (err) { toast(`${f.name}: ${err.message}`, true); }
+      try { const r = await ctx.api.upload(f, "UPLOAD"); n += r.imported; ds = r.dataset; } catch (err) { toast(`${f.name}: ${err.message}`, true); }
     }
     e.target.value = "";
-    if (n) { toast(`Загружено диалогов: ${n}`); F.dataset = "UPLOAD"; load(); }
+    if (n) { toast(`Загружено диалогов: ${n}`); F.dataset = ds; load(); }
   });
 
   function syncDialog() {
@@ -185,12 +185,13 @@ export async function mount(el, ctx, _params, top) {
     });
   }
 
+  let stopped = false;
   async function poll() {
     clearTimeout(timer);
     const id = ctx.app.activeJob;
-    if (!id) return;
+    if (!id || stopped) return;
     const j = await ctx.api.job(id).catch(() => null);
-    if (!j) return;
+    if (!j || stopped) return;
     const pct = Math.round((j.finished / j.total) * 100);
     $("[data-job]").innerHTML = `<div class="cqa-job">
       ${j.status === "running" ? `<span class="cqa-spin"></span>` : icon.check.replace("<svg", '<svg width="16"')}
@@ -202,11 +203,12 @@ export async function mount(el, ctx, _params, top) {
     </div>`;
     $("[data-close-job]")?.addEventListener("click", () => { ctx.app.activeJob = null; $("[data-job]").innerHTML = ""; });
     await load();
+    if (stopped) return;
     if (j.status === "running") timer = setTimeout(poll, 1500);
     else ctx.refresh();
   }
 
   await load();
   poll();
-  return () => clearTimeout(timer);
+  return () => { stopped = true; clearTimeout(timer); };
 }

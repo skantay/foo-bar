@@ -162,7 +162,7 @@ class CqaCase extends HTMLElement {
   }
 
   verOf(e) {
-    return e.checklist_id === this.ev?.checklist_id ? this.ev.checklist_version : e.checklist_id === this.active.id ? this.active.version : "?";
+    return e.checklist_id === this.ev?.checklist_id ? this.ev.checklist_version : e.checklist_id === this.active.id ? this.active.version : e.checklist_version ?? "?";
   }
 
   crit(id) { return this.ev.checklist.criteria.find((c) => c.id === id); }
@@ -242,7 +242,9 @@ class CqaCase extends HTMLElement {
         t.classList.toggle("nomatch", !!q && !x.text.toLowerCase().includes(q));
         const txt = t.querySelector(".txt");
         txt.innerHTML = q && x.text.toLowerCase().includes(q)
-          ? esc(x.text).replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), (m) => `<mark class="cqa-hit">${m}</mark>`)
+          // режем исходный текст по совпадениям и экранируем куски — иначе «t» попадает внутрь «&lt;»
+          ? x.text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"))
+              .map((part, i) => (i % 2 ? `<mark class="cqa-hit">${esc(part)}</mark>` : esc(part))).join("")
           : esc(x.text);
       });
     };
@@ -342,7 +344,13 @@ class CqaCase extends HTMLElement {
 
   async waitFor(fresh = false) {
     clearTimeout(this.timer);
-    const d = await this.api.dialog(this.dialog.id);
+    if (!this.isConnected) return;
+    let d;
+    try { d = await this.api.dialog(this.dialog.id); } catch (e) {
+      this.timer = setTimeout(() => this.waitFor(fresh), 3000); // сеть мигнула — пробуем ещё
+      return;
+    }
+    if (!this.isConnected) return;
     const running = d.evaluations.find((e) => e.status === "running");
     if (running || (fresh && d.evaluations[0]?.status === "running")) {
       this.querySelectorAll("[data-run]").forEach((b) => { b.disabled = true; b.innerHTML = `<span class="cqa-spin"></span> Оцениваю…`; });

@@ -50,7 +50,7 @@ export async function mount(el, ctx, _params, top) {
 
   el.addEventListener("click", async (e) => {
     const del = e.target.closest("[data-del]");
-    if (del) { await ctx.api.deleteGroundTruth(del.dataset.del); return render(); }
+    if (del) { try { await ctx.api.deleteGroundTruth(del.dataset.del); } catch (err) { return toast(err.message, true); } return render(); }
     if (e.target.closest("[data-stop]")) return;
     const tr = e.target.closest("tr[data-id]");
     if (tr) ctx.nav(`#/dialogs/${encodeURIComponent(tr.dataset.id)}`);
@@ -60,7 +60,8 @@ export async function mount(el, ctx, _params, top) {
     if (exp === "official") {
       const ds = top.querySelector("[data-ds]").value;
       if (!ds) return toast("Нет загруженных наборов", true);
-      const r = await ctx.api.officialResults(ds);
+      let r;
+      try { r = await ctx.api.officialResults(ds); } catch (err) { return toast(err.message, true); }
       download("results.json", JSON.stringify(r.document, null, 2));
       const err = r.document.results.filter((x) => x.status === "error").length;
       toast(r.problems.length ? `results.json: ${r.problems.length} проблем — ${r.problems[0]}` : `results.json: ${r.document.results.length} записей, ошибок ${err}`,

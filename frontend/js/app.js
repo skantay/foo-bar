@@ -105,7 +105,8 @@ class CqaApp extends HTMLElement {
   async route() {
     const h = location.hash || "#/";
     const r = ROUTES.find((x) => x.re.test(h)) || ROUTES[ROUTES.length - 1];
-    const params = h.match(r.re).slice(1).map(decodeURIComponent);
+    const dec = (x) => { try { return decodeURIComponent(x ?? ""); } catch { return x; } };
+    const params = (h.match(r.re) || []).slice(1).map(dec);
     this.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === r.nav));
     this.cleanup?.();
     this.cleanup = null;

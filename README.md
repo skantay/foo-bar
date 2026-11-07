@@ -19,7 +19,7 @@ export ANTHROPIC_API_KEY=sk-ant-...      # или без ключа: через 
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | ключ Claude API |
 | `CQA_BACKEND` | `auto` | `api` (по ключу), `cli` (через `claude -p`: те же промпт и JSON-схема, `--safe-mode` без CLAUDE.md и инструментов), `mock` (демо-заглушка, только явно); `auto` выбирает первое доступное, а без модели оценка не запускается |
-| `CQA_CLI_PARALLEL` | `6` | сколько вызовов `claude -p` одновременно |
+| `CQA_CLI_PARALLEL` | `16` | сколько вызовов `claude -p` одновременно |
 | `CQA_MODEL` | `claude-opus-5-5` | модель оценки |
 | `CQA_EFFORT` | `high` | глубина рассуждения (`low` … `max`) |
 | `CQA_SAMPLES` | `3` | сколько независимых прогонов на диалог (голосование по критериям) |

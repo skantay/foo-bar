@@ -26,7 +26,7 @@ export const icon = {
 };
 
 export const scoreClass = (v) => (v == null ? "none" : v >= 80 ? "hi" : v >= 60 ? "mid" : "lo");
-export const fmtScore = (v) => (v == null ? "—" : Number.isInteger(v) ? String(v) : v.toFixed(1));
+export const fmtScore = (v) => (v == null || v === "" || isNaN(v) ? "—" : Number.isInteger(+v) ? String(+v) : (+v).toFixed(1));
 export const scorePill = (v) => `<span class="cqa-score ${scoreClass(v)}">${fmtScore(v)}</span>`;
 export const langTag = (l) => `<span class="cqa-lang ${esc(l)}">${esc(l)}</span>`;
 export const channelIcon = (c) => (c === "voice call" ? icon.phone : icon.chat);

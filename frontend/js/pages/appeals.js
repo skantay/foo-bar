@@ -34,6 +34,7 @@ export async function mount(el, ctx, [selId], top) {
 
   async function panel(a) {
     const [ev, dialog] = await Promise.all([ctx.api.evaluation(a.evaluation_id), ctx.api.dialog(a.dialog_id)]);
+    if (a.id !== selId) return; // пока грузилось, выбрали другую апелляцию
     const c = ev.checklist.criteria.find((x) => x.id === a.criterion_id);
     const ans = ev.answers[c.id];
     const disputed = { value: a.disputed_value, na: a.disputed_na };
