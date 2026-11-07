@@ -1,4 +1,4 @@
-import { answerView, esc, fmtScore, fmtTs, icon, speakerName, timeAgo, toast, valueOptions } from "../ui.js";
+import { answerView, esc, fmtScore, fmtTs, icon, remember, remembered, speakerName, timeAgo, toast, valueOptions } from "../ui.js";
 
 export async function mount(el, ctx, [selId], top) {
   let tab = "open";
@@ -58,7 +58,7 @@ export async function mount(el, ctx, [selId], top) {
           <div class="box" style="${resolved ? "border-color:var(--accent)" : "border-style:dashed"}"><div class="k">${resolved ? "Решение проверяющего" : "Итог кейса сейчас"}</div>
             <div class="v">${resolved ? esc(answerView(c, { value: a.new_value, na: a.new_na }).label) : fmtScore(ev.final_result.total)}</div></div>
         </div>
-        <div><label class="cqa-label">Комментарий оператора · ${esc(a.author)} · ${timeAgo(a.created_at)}</label>
+        <div><label class="cqa-label">Комментарий · ${esc(a.author)} · ${timeAgo(a.created_at)}</label>
           <div class="cqa-alert warn">«${esc(a.comment)}»</div></div>
         <div><label class="cqa-label">Обоснование модели</label>
           <div>${esc(ans.na ? ans.na_reason || ans.explanation : ans.explanation)}</div>
@@ -85,6 +85,7 @@ export async function mount(el, ctx, [selId], top) {
                   При N/A у других критериев вес пересчитается пропорционально.</span>
                 </div></div>`}
             </div>
+            <div><label class="cqa-label">Проверяющий</label><input class="cqa-input" data-reviewer placeholder="ФИО проверяющего" value="${esc(remembered("cqa-reviewer"))}"></div>
             <div><label class="cqa-label">Причина решения (обязательно)</label><textarea class="cqa-textarea" data-reason placeholder="Например: оператор представился в реплике [9], критерий выполнен"></textarea></div>
             <div class="cqa-row"><button class="cqa-btn primary" data-save>${icon.check} Сохранить финальный результат</button></div>
           </div></div>`}
@@ -125,7 +126,9 @@ export async function mount(el, ctx, [selId], top) {
     p.querySelector("[data-save]").onclick = async (e) => {
       e.target.disabled = true;
       try {
-        const body = { decision: state.decision, reason: p.querySelector("[data-reason]").value, reviewer: "Проверяющий QC" };
+        const name = p.querySelector("[data-reviewer]").value.trim();
+        remember("cqa-reviewer", name);
+        const body = { decision: state.decision, reason: p.querySelector("[data-reason]").value, reviewer: name ? `Проверяющий ${name}` : "Проверяющий" };
         if (state.decision === "change") {
           Object.assign(body, { value: state.value, na: state.na, critical_error: !!p.querySelector("[data-crit]")?.checked });
           if (p.querySelector("[data-manual]")?.checked && !state.na && state.value > lowest) body.manual_points = Number(p.querySelector("[data-points]").value);

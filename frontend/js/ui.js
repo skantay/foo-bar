@@ -136,3 +136,7 @@ export const fmtTs = (ts) => {
 };
 
 export const money = (v) => (v == null ? "—" : `$${v < 0.1 ? v.toFixed(4) : v.toFixed(2)}`);
+
+// Имя пользователя на этом устройстве — только для удобства (без авторизации); в приватном режиме не сохраняется.
+export const remembered = (k) => { try { return localStorage.getItem(k) || ""; } catch { return ""; } };
+export const remember = (k, v) => { try { localStorage.setItem(k, v); } catch { /* хранилище недоступно */ } };

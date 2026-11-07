@@ -1,7 +1,7 @@
 // <cqa-case dialog-id="..." api-base="..."> — карточка кейса: транскрипт + оценка + апелляции.
 // Самодостаточный компонент: его можно встроить отдельно на форму обращения в Dynamics 365.
 import { Api } from "../api.js";
-import { answerView, esc, fmtScore, fmtTs, icon, langTag, money, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
+import { answerView, esc, fmtScore, fmtTs, icon, langTag, money, remember, remembered, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
 
 const PII_LABEL = { PHONE: "телефон", IIN: "ИИН", CARD: "карта", IBAN: "IBAN", EMAIL: "email",
   "ИМЯ_ОПЕРАТОРА": "имя оператора", "ИМЯ_КЛИЕНТА": "имя клиента" };
@@ -214,9 +214,9 @@ class CqaCase extends HTMLElement {
         ${ov ? `<div class="cqa-diff">${icon.scale.replace("<svg", '<svg width="16"')}<div>Исходная оценка ИИ: <b>${esc(answerView(c, a).label)}</b> → решение проверяющего: <b>${esc(v.label)}</b>${ov.manual_points != null ? `, баллы вручную: <b>${fmtScore(ov.manual_points)} из ${c.weight}</b>` : ""}<br><span class="cqa-muted">${esc(ov.reason)}</span></div></div>` : ""}
         ${appeals.map((x) => `<div class="cqa-hist ${x.status}">
           <b>${x.status === "open" ? "Апелляция на рассмотрении" : x.decision === "confirm" ? "Апелляция отклонена — оценка подтверждена" : "Апелляция удовлетворена — оценка изменена"}</b>
-          <span class="cqa-faint"> · ${timeAgo(x.created_at)}</span>
+          <span class="cqa-faint"> · ${esc(x.author || "Оператор")} · ${timeAgo(x.created_at)}</span>
           <div>«${esc(x.comment)}»</div>
-          ${x.status === "resolved" ? `<div class="cqa-muted">Проверяющий: ${esc(x.reason)}${x.total_before != null ? ` · итог ${fmtScore(x.total_before)} → ${fmtScore(x.total_after)}` : ""}</div>`
+          ${x.status === "resolved" ? `<div class="cqa-muted">${esc(x.reviewer || "Проверяющий")}: ${esc(x.reason)}${x.total_before != null ? ` · итог ${fmtScore(x.total_before)} → ${fmtScore(x.total_after)}` : ""}</div>`
             : `<a class="cqa-btn sm" style="margin-top:6px" href="#/appeals/${x.id}">Рассмотреть как проверяющий →</a>`}
         </div>`).join("")}
         ${canAppeal ? `<div data-appeal-slot><button class="cqa-btn sm" data-appeal>${icon.scale} Оспорить критерий</button></div>` : ""}
@@ -304,6 +304,8 @@ class CqaCase extends HTMLElement {
     const c = this.crit(card.dataset.crit);
     const slot = card.querySelector("[data-appeal-slot]");
     slot.innerHTML = `<div class="cqa-appeal-box">
+      <label class="cqa-label">Оператор, подающий апелляцию</label>
+      <input class="cqa-input" data-author placeholder="ФИО оператора" value="${esc(remembered("cqa-operator"))}" style="margin-bottom:8px">
       <label class="cqa-label">Почему вы не согласны с оценкой «${esc(c.name)}»?</label>
       <textarea class="cqa-textarea" data-cmt placeholder="Например: в реплике [5] оператор представился, модель это не учла"></textarea>
       <div class="cqa-row" style="margin-top:8px">
@@ -315,7 +317,10 @@ class CqaCase extends HTMLElement {
     slot.querySelector("[data-send]").onclick = async (e) => {
       e.stopPropagation();
       try {
-        await this.api.appeal({ evaluation_id: this.ev.id, criterion_id: c.id, comment: slot.querySelector("[data-cmt]").value });
+        const author = slot.querySelector("[data-author]").value.trim();
+        remember("cqa-operator", author);
+        await this.api.appeal({ evaluation_id: this.ev.id, criterion_id: c.id, comment: slot.querySelector("[data-cmt]").value,
+          author: author ? `Оператор ${author}` : "Оператор" });
         toast("Апелляция подана — она появилась в очереди проверяющего");
         this.dispatchEvent(new CustomEvent("cqa-changed", { bubbles: true }));
         this.load(this.ev.id);
