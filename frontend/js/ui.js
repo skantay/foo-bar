@@ -23,6 +23,7 @@ export const icon = {
   up: P('<path d="M12 19V5M6 11l6-6 6 6"/>'),
   down: P('<path d="M12 5v14M6 13l6 6 6-6"/>'),
   code: P('<path d="m8 8-4 4 4 4M16 8l4 4-4 4"/>'),
+  left: P('<path d="M19 12H5m6-6-6 6 6 6"/>'),
   x: P('<path d="M6 6l12 12M18 6 6 18"/>'),
   lock: P('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
 };

@@ -66,9 +66,8 @@ export async function mount(el, ctx, [selId], top) {
       <div class="cqa-card cqa-card-b" style="margin-bottom:14px">
         <input class="cqa-title-in" data-g="name" value="${esc(draft.name || "")}" placeholder="Название чек-листа">
         <input class="cqa-desc-in" data-g="description" value="${esc(draft.description || "")}" placeholder="Описание — необязательно">
-        ${!isNew && base ? `<div class="cqa-row" style="margin-top:10px;gap:10px">${base.active
-          ? `<span class="cqa-chip yes">${icon.check.replace("<svg", '<svg width="12" height="12"')} Активный · версия ${base.version} — по нему идёт оценка</span>`
-          : `<span class="cqa-chip na">Не активен · версия ${base.version}</span><button class="cqa-btn primary sm" data-activate>${icon.check} Сделать активным</button>`}</div>` : ""}
+        ${!isNew && base ? `<div class="cqa-row cqa-faint" style="font-size:12.5px;margin-top:8px">
+          Версия ${base.version}${base.active ? ` · <span style="color:var(--accent);font-weight:600">активна — по ней идёт оценка</span>` : ` · <button class="cqa-btn sm" data-activate>Сделать активным</button>`}</div>` : ""}
       </div>
 
       <div class="cqa-row" style="margin:4px 2px 10px"><h3 style="margin:0;font-size:15px">Критерии</h3>

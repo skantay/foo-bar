@@ -58,7 +58,7 @@ class CqaApp extends HTMLElement {
       </aside>
       <main class="cqa-main">
         <div class="cqa-brandmark" aria-hidden="true">${BRAND_MARK}</div>
-        <header class="cqa-top"><button class="cqa-btn sm cqa-back" data-back hidden title="Вернуться на предыдущую страницу">${icon.back} Назад</button><div><h1></h1><div class="cqa-sub"></div></div><div class="cqa-top-right" data-top></div></header>
+        <header class="cqa-top"><button class="cqa-btn cqa-back" data-back hidden title="Вернуться на предыдущую страницу">${icon.left} Назад</button><div><h1></h1><div class="cqa-sub"></div></div><div class="cqa-top-right" data-top></div></header>
         <div class="cqa-page" data-page></div>
       </main>
     </div>`;
@@ -105,7 +105,7 @@ class CqaApp extends HTMLElement {
       this.querySelector("[data-foot]").innerHTML = `
         <div>Чек-лист: <b>${esc(checklist.name)}</b> · версия ${checklist.version}</div>
         ${health.llm ? "" : health.backend === "mock"
-          ? `<div style="margin-top:6px;color:#ffd27a">Демо-режим: оценки ненастоящие (CQA_BACKEND=mock)</div>`
+          ? `<div style="margin-top:6px;color:#ffd27a">Демо-режим: оценки ненастоящие</div>`
           : `<div style="margin-top:6px;color:#ffd27a">Модель не подключена: задайте ANTHROPIC_API_KEY или установите Claude Code</div>`}`;
     } catch (e) {
       toast(`API недоступен: ${e.message}`, true);

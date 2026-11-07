@@ -1,4 +1,4 @@
-import { esc, fmtScore, icon, scoreClass } from "../ui.js";
+import { esc, fmtScore, icon, langTag, scoreClass } from "../ui.js";
 
 export async function mount(el, ctx, _params, top) {
   const s = await ctx.api.stats(ctx.checklist?.id);
@@ -8,6 +8,7 @@ export async function mount(el, ctx, _params, top) {
 
   const passRate = s.evaluated && s.passed != null ? Math.round((s.passed / s.evaluated) * 100) : null;
   // худшие критерии — сверху; без данных (все N/A) — в конце
+  const maxBar = Math.max(1, ...s.distribution);
   const crit = Object.entries(s.criteria).sort(([, a], [, b]) => (a.avg_ratio ?? 2) - (b.avg_ratio ?? 2));
 
   el.innerHTML = `
@@ -35,6 +36,18 @@ export async function mount(el, ctx, _params, top) {
             <div style="text-align:right;font-weight:700">${c.avg_ratio == null ? "—" : Math.round(c.avg_ratio * 100) + "%"}</div>
           </div>`;
         }).join("") || `<div class="cqa-muted">Нет данных</div>`}
+      </div>
+    </div>
+    <div class="cqa-card" style="margin-top:16px">
+      <div class="cqa-card-h"><h3>Распределение баллов</h3></div>
+      <div class="cqa-card-b"><div class="cqa-bars">
+        ${s.distribution.map((n, i) => `<div class="b"><em>${n || ""}</em><i style="height:${(n / maxBar) * 100}%;background:${i >= 8 ? "var(--yes)" : i >= 6 ? "var(--part)" : "var(--no)"}"></i><span>${i * 10}</span></div>`).join("")}
+      </div></div>
+    </div>
+    <div class="cqa-card" style="margin-top:16px">
+      <div class="cqa-card-h"><h3>По языкам</h3></div>
+      <div class="cqa-card-b">
+        ${Object.entries(s.by_language).map(([l, v]) => `<div class="cqa-row" style="padding:6px 0">${langTag(l)}<div class="cqa-grow cqa-progress"><i style="width:${v}%"></i></div><b style="width:40px;text-align:right">${fmtScore(v)}</b></div>`).join("") || `<div class="cqa-muted">Нет данных</div>`}
       </div>
     </div>`;
   el.onclick = (e) => {

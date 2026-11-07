@@ -1,10 +1,7 @@
 // <cqa-case dialog-id="..." api-base="..."> — карточка кейса: транскрипт + оценка + апелляции.
 // Самодостаточный компонент: его можно встроить отдельно на форму обращения в Dynamics 365.
 import { Api } from "../api.js";
-import { answerView, audioOffsets, esc, fmtOffset, fmtScore, fmtTs, icon, langTag, markOf, money, playerHtml, remember, remembered, scoreClass, speakerName, timeAgo, toast, wirePlayer } from "../ui.js";
-
-const PII_LABEL = { PHONE: "телефон", IIN: "ИИН", CARD: "карта", IBAN: "IBAN", EMAIL: "email",
-  "ИМЯ_ОПЕРАТОРА": "имя оператора", "ИМЯ_КЛИЕНТА": "имя клиента" };
+import { answerView, audioOffsets, esc, fmtOffset, fmtScore, fmtTs, icon, langTag, markOf, playerHtml, remember, remembered, scoreClass, speakerName, timeAgo, toast, wirePlayer } from "../ui.js";
 
 class CqaCase extends HTMLElement {
   static get observedAttributes() { return ["dialog-id", "evaluation-id"]; }
@@ -142,13 +139,6 @@ class CqaCase extends HTMLElement {
           }).join("")}</table>
           ${ev.timing_facts?.length ? `<div class="cqa-alert info" style="margin-top:12px;padding:8px 12px"><div><b>Время ответа</b> (посчитано по меткам)
             ${ev.timing_facts.map((t) => `<div>${this.linkify(t)}</div>`).join("")}</div></div>` : ""}
-          ${ev.pii?.enabled ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">${icon.lock.replace("<svg", '<svg width="12" height="12" style="vertical-align:-1px"')} Персональные данные замаскированы перед отправкой в модель: ${
-            Object.entries(ev.pii.counts || {}).map(([k, n]) => `${esc(PII_LABEL[k] || k)} × ${n}`).join(", ") || "не найдено"}</summary>
-            ${ev.pii.masked_turns?.length ? `<div style="margin:6px 0 0;font-size:12.5px">Так эти реплики увидела модель:</div>
-            <ul style="margin:4px 0 0;font-size:12.5px">${ev.pii.masked_turns.map((t) => `<li>[${t.turn}] ${esc(t.text)}</li>`).join("")}</ul>` : ""}</details>` : ""}
-          ${ev.warnings?.length ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Предупреждения валидации (${ev.warnings.length})</summary>
-            <ul style="margin:6px 0 0;font-size:12.5px">${ev.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>` : ""}
-          <div class="cqa-faint" style="font-size:12px;margin-top:10px">Модель: ${esc(ev.model)} · стоимость оценки ${money(ev.cost_usd)} · ${timeAgo(ev.created_at)}</div>
         </div>
       </div>
       <div>${cl.criteria.map((c, i) => this.renderCrit(c, i)).join("")}</div>`;
