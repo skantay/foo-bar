@@ -167,6 +167,9 @@ def criteria_marks(e: dict) -> list[dict]:
             m = "none"
         elif c.get("type") == "flag":
             m = "crit" if a["value"] else "ok"
+        elif a.get("manual_ratio") is not None:
+            r = a["manual_ratio"]
+            m = "yes" if r >= 1 else "no" if r <= 0 else "part"
         else:
             m = "yes" if a["value"] >= hi else "no" if a["value"] <= lo else "part"
         out.append({"id": c["id"], "name": c["name"], "m": m, "label": answer_label(c, a)})
@@ -324,12 +327,7 @@ JOBS: dict[str, dict] = {}
 
 def recompute(e: dict, checklist: dict) -> dict:
     """Пересчитывает финальный результат с учётом решений по апелляциям."""
-    final = {cid: dict(a) for cid, a in e["answers"].items()}
-    for cid, ov in (e.get("overrides") or {}).items():
-        if cid in final:
-            final[cid].update(value=ov["value"], na=ov["na"],
-                              critical_error=ov.get("critical_error", final[cid]["critical_error"]))
-    e["final_result"] = scoring.compute(checklist, final)
+    e["final_result"] = scoring.compute(checklist, final_answers(e))
     appeals = [a for a in db.all("appeals") if a["evaluation_id"] == e["id"]]
     e["open_appeals"] = sum(1 for a in appeals if a["status"] == "open")
     total = e["final_result"]["total"]
@@ -483,8 +481,7 @@ def decide_appeal(aid: str, body: dict = Body(...)):
     e = db.get("evaluations", a["evaluation_id"])
     checklist = db.get("checklists", e["checklist_id"])
     crit = next(c for c in checklist["criteria"] if c["id"] == a["criterion_id"])
-    before = scoring.compute(checklist, {**e["answers"], **{k: {**e["answers"][k], **v}
-                                                          for k, v in (e.get("overrides") or {}).items()}})
+    before = scoring.compute(checklist, final_answers(e))
     if decision == "change":
         na = bool(body.get("na"))
         if na and not crit.get("na_allowed"):
@@ -492,14 +489,27 @@ def decide_appeal(aid: str, body: dict = Body(...)):
         value = None if na else scoring.normalize_value(crit, body.get("value"))
         if not na and value is None:
             raise HTTPException(400, "Укажите новое значение")
+        # Необязательная ручная корректировка: баллы в единицах веса критерия (0…вес),
+        # например 5 из 10 за частично выполненное «Да / Нет».
+        manual_ratio = None
+        mp = body.get("manual_points")
+        lo, _ = scoring.value_range(crit)
+        # «Нет» / нижняя ступень — это 0 баллов по определению, ручная корректировка к ним не применяется
+        if mp not in (None, "") and not na and crit.get("type") != "flag" and value > lo:
+            w = float(crit["weight"])
+            if not 0 <= float(mp) <= w:
+                raise HTTPException(400, f"Баллы вручную — от 0 до {w:g}")
+            manual_ratio = round(float(mp) / w, 4)
         e.setdefault("overrides", {})[a["criterion_id"]] = {
             "value": value, "na": na, "critical_error": bool(body.get("critical_error", False)),
+            "manual_ratio": manual_ratio, "manual_points": None if manual_ratio is None else float(mp),
             "reason": reason, "appeal_id": aid, "reviewer": body.get("reviewer") or "Проверяющий", "at": db.now()}
     a.update(status="resolved", decision=decision, reason=reason, reviewer=body.get("reviewer") or "Проверяющий",
              resolved_at=db.now(), new_value=e.get("overrides", {}).get(a["criterion_id"], {}).get("value")
              if decision == "change" else a["disputed_value"],
              new_na=e.get("overrides", {}).get(a["criterion_id"], {}).get("na") if decision == "change"
-             else a["disputed_na"], total_before=before["total"])
+             else a["disputed_na"], total_before=before["total"],
+             manual_points=e.get("overrides", {}).get(a["criterion_id"], {}).get("manual_points") if decision == "change" else None)
     db.put("appeals", a)
     recompute(e, checklist)
     a["total_after"] = e["final_result"]["total"]
@@ -560,10 +570,13 @@ def answer_label(c: dict, a: dict | None):
 
 
 def final_answers(e: dict) -> dict:
+    """Ответы ИИ с наложенными решениями проверяющего (включая ручные баллы)."""
     out = {k: dict(v) for k, v in e["answers"].items()}
     for k, ov in (e.get("overrides") or {}).items():
         if k in out:
-            out[k].update(value=ov["value"], na=ov["na"])
+            out[k].update(value=ov["value"], na=ov["na"],
+                          critical_error=ov.get("critical_error", out[k].get("critical_error", False)),
+                          manual_ratio=ov.get("manual_ratio"))
     return out
 
 

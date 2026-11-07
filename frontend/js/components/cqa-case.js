@@ -211,7 +211,7 @@ class CqaCase extends HTMLElement {
             ${e.verified ? "" : `<span class="unver"> · цитата заменена текстом реплики</span>`}</div></div>`).join("")}</div>` : ""}
         ${a.checked_range && !a.na ? `<button class="cqa-btn ghost sm" data-range-btn>Проверенный участок: реплики [${a.checked_range.from_turn}]–[${a.checked_range.to_turn}]</button>` : ""}
         ${a.needs_review ? `<span class="cqa-chip warn">Низкая уверенность модели — стоит проверить</span>` : ""}
-        ${ov ? `<div class="cqa-diff">${icon.scale.replace("<svg", '<svg width="16"')}<div>Исходная оценка ИИ: <b>${esc(answerView(c, a).label)}</b> → решение проверяющего: <b>${esc(v.label)}</b><br><span class="cqa-muted">${esc(ov.reason)}</span></div></div>` : ""}
+        ${ov ? `<div class="cqa-diff">${icon.scale.replace("<svg", '<svg width="16"')}<div>Исходная оценка ИИ: <b>${esc(answerView(c, a).label)}</b> → решение проверяющего: <b>${esc(v.label)}</b>${ov.manual_points != null ? `, баллы вручную: <b>${fmtScore(ov.manual_points)} из ${c.weight}</b>` : ""}<br><span class="cqa-muted">${esc(ov.reason)}</span></div></div>` : ""}
         ${appeals.map((x) => `<div class="cqa-hist ${x.status}">
           <b>${x.status === "open" ? "Апелляция на рассмотрении" : x.decision === "confirm" ? "Апелляция отклонена — оценка подтверждена" : "Апелляция удовлетворена — оценка изменена"}</b>
           <span class="cqa-faint"> · ${timeAgo(x.created_at)}</span>

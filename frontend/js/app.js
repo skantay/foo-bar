@@ -107,11 +107,20 @@ class CqaApp extends HTMLElement {
     this.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === r.nav));
     this.cleanup?.();
     this.cleanup = null;
-    this.querySelector("[data-top]").innerHTML = "";
-    this.pageEl.innerHTML = `<div class="cqa-card cqa-card-b"><div class="cqa-skel" style="width:40%"></div><div class="cqa-skel" style="width:70%;margin-top:10px"></div></div>`;
+    // Каждая страница получает свежие контейнеры: обработчики, которые она навесила,
+    // уходят вместе со старыми узлами и не срабатывают на других страницах.
+    const top = this.querySelector("[data-top]").cloneNode(false);
+    this.querySelector("[data-top]").replaceWith(top);
+    const page = this.pageEl.cloneNode(false);
+    this.pageEl.replaceWith(page);
+    this.pageEl = page;
+    page.innerHTML = `<div class="cqa-card cqa-card-b"><div class="cqa-skel" style="width:40%"></div><div class="cqa-skel" style="width:70%;margin-top:10px"></div></div>`;
     this.querySelector(".cqa-main").scrollTop = 0;
+    const token = (this.routeToken = (this.routeToken || 0) + 1);
     try {
-      this.cleanup = await r.page.mount(this.pageEl, this.ctx, params, this.querySelector("[data-top]"));
+      const cleanup = await r.page.mount(page, this.ctx, params, top);
+      if (token !== this.routeToken) return cleanup?.();  // пока страница грузилась, пользователь ушёл дальше
+      this.cleanup = cleanup;
     } catch (e) {
       this.pageEl.innerHTML = `<div class="cqa-alert crit">${icon.alert}<div>${esc(e.message)}</div></div>`;
     }

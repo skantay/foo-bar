@@ -30,7 +30,7 @@ EFFORT = os.getenv("CQA_EFFORT", "high")
 SAMPLES = max(1, int(os.getenv("CQA_SAMPLES", "3")))
 # api — Anthropic API по ключу; cli — локальный `claude -p` (Claude Code); mock — заглушка; auto — что доступно
 BACKEND = os.getenv("CQA_BACKEND", "auto")
-CLI_PARALLEL = int(os.getenv("CQA_CLI_PARALLEL", "6"))
+CLI_PARALLEL = int(os.getenv("CQA_CLI_PARALLEL", "16"))
 # маскировать персональные данные перед отправкой в модель (1/0)
 PII_MASK = os.getenv("CQA_PII_MASK", "1") != "0"
 
@@ -504,28 +504,45 @@ async def evaluate(dialog: dict, checklist: dict) -> dict:
     started = time.time()
     # в модель уходит только замаскированный текст; цитаты сверяются с ним же
     sent, mapping, counts = pii.mask_dialog(dialog) if PII_MASK else (dialog, {}, Counter())
-    if has_llm():
-        call = call_cli if backend() == "cli" else call_llm
-        results = await asyncio.gather(*(call(sent, checklist) for _ in range(SAMPLES)), return_exceptions=True)
-        ok = [r for r in results if not isinstance(r, Exception)]
-        if not ok:
-            raise results[0]
+    runs, warnings = [], []
+
+    def absorb(results: list) -> list[dict]:
+        good = []
         for r in results:
             if isinstance(r, Exception):
                 log.warning("sample failed for %s: %s", dialog["id"], r)
+                continue
+            a, w = postprocess(checklist, sent, r["raw"])
+            runs.append(a)
+            warnings.extend(x for x in w if x not in warnings)
+            good.append(r)
+        return good
+
+    def unanimous() -> bool:
+        keys = lambda a: "na" if a["na"] else a["value"]
+        return all(len({keys(r[c["id"]]) for r in runs if c["id"] in r}) <= 1 for c in checklist["criteria"])
+
+    if has_llm():
+        call = call_cli if backend() == "cli" else call_llm
+        # Сначала столько прогонов, сколько нужно для большинства. Если они единогласны по всем
+        # критериям, оставшиеся прогоны исход голосования уже не изменят — их не запускаем.
+        first = SAMPLES // 2 + 1
+        results = await asyncio.gather(*(call(sent, checklist) for _ in range(first)), return_exceptions=True)
+        ok = absorb(results)
+        if len(ok) < SAMPLES and (len(ok) < first or not unanimous()):
+            more = await asyncio.gather(*(call(sent, checklist) for _ in range(SAMPLES - len(ok))), return_exceptions=True)
+            ok += absorb(more)
+        if not ok:
+            raise next(r for r in results if isinstance(r, Exception))
         model = ok[0]["model"]
         usage = {k: sum(r["usage"][k] for r in ok) for k in ok[0]["usage"]}
         cost = round(sum(r["cost_usd"] for r in ok), 5) if backend() == "cli" else cost_usd(MODEL, usage)
     else:
-        ok = [{"raw": mock_raw(sent, checklist, i)} for i in range(SAMPLES)]
+        ok = absorb([{"raw": mock_raw(sent, checklist, i)} for i in range(SAMPLES)])
         model, usage, cost = "mock", {}, 0.0
-    runs, warnings = [], []
-    for r in ok:
-        a, w = postprocess(checklist, sent, r["raw"])
-        runs.append(a)
-        warnings += [x for x in w if x not in warnings]
-    if len(ok) < SAMPLES:
-        warnings.append(f"Успешных прогонов {len(ok)} из {SAMPLES}")
+    planned = SAMPLES if not has_llm() or len(ok) >= SAMPLES or not unanimous() else len(ok)
+    if len(ok) < planned:
+        warnings.append(f"Успешных прогонов {len(ok)} из {planned}")
     orig = dialog["transcript"]
     return {
         "answers": unmask_answers(vote(checklist, runs), mapping),
