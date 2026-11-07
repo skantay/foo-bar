@@ -1,0 +1,159 @@
+{
+ "records": [
+  {
+   "conversation_id": "syn-ru-01",
+   "criteria": {
+    "contact": "Да",
+    "needs": "Да",
+    "identification": "Да",
+    "consultation": 20,
+    "empathy": "Да",
+    "management": 10,
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "всё выполнено"
+  },
+  {
+   "conversation_id": "syn-ru-02",
+   "criteria": {
+    "contact": "Нет",
+    "needs": "N/A",
+    "identification": "N/A",
+    "consultation": 20,
+    "empathy": "Да",
+    "management": 10,
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "нет приветствия и имени"
+  },
+  {
+   "conversation_id": "syn-ru-03",
+   "criteria": {
+    "contact": "Да",
+    "identification": "Нет",
+    "empathy": "Да",
+    "management": 10,
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "смена номера без проверки личности"
+  },
+  {
+   "conversation_id": "syn-kz-04",
+   "criteria": {
+    "contact": "Да",
+    "identification": "N/A",
+    "empathy": "Нет",
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "жалобу клиента проигнорировал"
+  },
+  {
+   "conversation_id": "syn-en-05",
+   "criteria": {
+    "contact": "Да",
+    "needs": "N/A",
+    "identification": "N/A",
+    "consultation": "N/A",
+    "closing": "N/A",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "чат оборвался до запроса"
+  },
+  {
+   "conversation_id": "syn-ru-06",
+   "criteria": {
+    "contact": "Да",
+    "identification": "N/A",
+    "gross_errors": "Да",
+    "closing": "Нет"
+   },
+   "source": "synthetic",
+   "note": "предложение частной платной консультации"
+  },
+  {
+   "conversation_id": "syn-ru-07",
+   "criteria": {
+    "contact": "Да",
+    "needs": "Да",
+    "identification": "Да",
+    "consultation": 20,
+    "management": 7,
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "ожидание 5:25 без предупреждения"
+  },
+  {
+   "conversation_id": "syn-en-08",
+   "criteria": {
+    "contact": "Да",
+    "identification": "N/A",
+    "consultation": 10,
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "второй вопрос (срок) без ответа"
+  },
+  {
+   "conversation_id": "syn-kz-09",
+   "criteria": {
+    "contact": "Да",
+    "needs": "Нет",
+    "identification": "N/A",
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "не уточнил валюту и направление до ответа"
+  },
+  {
+   "conversation_id": "syn-ru-10",
+   "criteria": {
+    "contact": "Да",
+    "needs": "N/A",
+    "identification": "N/A",
+    "consultation": 20,
+    "empathy": "Да",
+    "management": 10,
+    "closing": "Нет",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "закрыл чат без прощания"
+  },
+  {
+   "conversation_id": "syn-en-11",
+   "criteria": {
+    "contact": "Да",
+    "identification": "N/A",
+    "consultation": 0,
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "ключевая рекомендация ошибочна"
+  },
+  {
+   "conversation_id": "syn-ru-12",
+   "criteria": {
+    "contact": "Да",
+    "identification": "N/A",
+    "consultation": 0,
+    "management": 0,
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "противоречивые ответы"
+  }
+ ]
+}
