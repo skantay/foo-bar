@@ -111,15 +111,6 @@ def test_numeric_strings_are_coerced(client, default_checklist):
     assert c["pass_threshold"] == 70.0 and c["criteria"][0]["weight"] == 10.0
 
 
-def test_manual_points_non_numeric_is_400(evaluated):
-    ev = latest_eval(evaluated, "t-ru-001")
-    ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "consultation",
-                                              "comment": "x"}).json()
-    r = evaluated.post(f"/api/appeals/{ap['id']}/decision",
-                       json={"decision": "change", "value": 15, "manual_points": "abc", "reason": "r"})
-    assert r.status_code == 400
-
-
 # ---------- оценки и results.json ----------
 
 def test_failed_rerun_does_not_hide_done_result(evaluated):
@@ -187,14 +178,14 @@ def test_ground_truth_in_results_json_format(evaluated):
     assert row["gt_total"] == 87.5
 
 
-def test_official_score_not_zeroed_and_ignores_manual_points(evaluated, default_checklist):
+def test_official_score_not_zeroed_by_critical_flag(evaluated, default_checklist):
     """Appendix: final_score выводится из value критериев и не обнуляется флагом грубой ошибки."""
     base = evaluated.get("/api/results", params={"dataset": "TEST"}).json()["document"]["results"]
     ev = latest_eval(evaluated, "t-ru-001")
     ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "contact",
                                               "comment": "x"}).json()
     evaluated.post(f"/api/appeals/{ap['id']}/decision",
-                   json={"decision": "change", "value": 1, "manual_points": 5, "reason": "частично"})
+                   json={"decision": "change", "value": 1, "reason": "представился"})
     ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "gross_errors",
                                               "comment": "x"}).json()
     evaluated.post(f"/api/appeals/{ap['id']}/decision", json={"decision": "change", "value": 1, "reason": "оскорбление"})
@@ -207,7 +198,7 @@ def test_official_score_not_zeroed_and_ignores_manual_points(evaluated, default_
     old = next(r for r in base if r["conversation_id"] == "t-ru-001")
     assert contact["value"] is True and rec["score"]["critical_flag"] is True
     old_contact = next(c for c in old["criteria"] if c["criterion_id"] == "contact")["value"]
-    if old_contact is True:  # те же value → тот же итог, несмотря на ручные баллы и режим zero
+    if old_contact is True:  # те же value → тот же итог, несмотря на режим zero
         assert rec["score"]["final_score"] == old["score"]["final_score"]
     assert rec["score"]["final_score"] > 0
 

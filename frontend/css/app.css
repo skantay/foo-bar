@@ -869,3 +869,8 @@ cqa-app .cqa-crit.s-crit .num { background: var(--crit); color: #fff; }
   .cqa-steps { grid-template-columns: minmax(0, 1fr); }
   .cqa-steps > i { display: none; }
 }
+
+/* апелляций нет — просто текст по центру, без пустой карточки */
+cqa-app .cqa-appeals.empty { display: block; }
+cqa-app .cqa-appeals.empty > .cqa-card { background: none; border: 0; box-shadow: none; }
+cqa-app .cqa-appeals.empty .cqa-empty { text-align: center; padding: 72px 16px; }

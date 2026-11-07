@@ -22,7 +22,8 @@ export async function mount(el, ctx, [selId], top) {
           <span class="cqa-chip ${a.status === "open" ? "warn" : a.decision === "change" ? "yes" : "na"}" style="margin-left:auto">${a.status === "open" ? "Открыта" : a.decision === "change" ? "Изменена" : "Подтверждена"}</span></div>
         <div class="c">«${esc(a.comment)}»</div>
         <div class="cqa-faint" style="font-size:11.5px;margin-top:4px"><span class="cqa-mono">${esc(a.dialog_id)}</span> · итог ${fmtScore(a.evaluation_total)} · ${timeAgo(a.created_at)}</div>
-      </div>`).join("") || `<div class="cqa-empty">Апелляций нет.<br><span class="cqa-faint">Подать апелляцию можно в карточке диалога — кнопка «Оспорить критерий».</span></div>`;
+      </div>`).join("") || `<div class="cqa-empty">${tab === "open" ? "Нет апелляций на рассмотрении." : tab === "resolved" ? "Рассмотренных апелляций пока нет." : "Апелляций нет."}<br><span class="cqa-faint">Подать апелляцию можно в карточке диалога — кнопка «Оспорить критерий».</span></div>`;
+    el.querySelector(".cqa-appeals").classList.toggle("empty", !list.length);
     if (!selId && list[0]) selId = list[0].id;
     if (selId && list.some((a) => a.id === selId)) {
       el.querySelectorAll(".cqa-ap-item").forEach((x) => x.classList.toggle("on", x.dataset.id === selId));
@@ -71,20 +72,13 @@ export async function mount(el, ctx, [selId], top) {
               <div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time>${esc(fmtTs(x.timestamp))}</time></div><div class="txt">${esc(x.text)}</div></div></div>`;
           }).join("")}</div></div>
         ${resolved ? `<div class="cqa-alert info">${icon.check}<div><b>${a.decision === "change" ? "Оценка изменена" : "Оценка подтверждена"}</b> · ${esc(a.reviewer)} · ${timeAgo(a.resolved_at)}
-          <div>${esc(a.reason)}</div>${a.manual_points != null ? `<div style="margin-top:4px">Баллы заданы вручную: <b>${fmtScore(a.manual_points)} из ${c.weight}</b></div>` : ""}<div style="margin-top:4px">Итог кейса: <b>${fmtScore(a.total_before)} → ${fmtScore(a.total_after)}</b></div></div></div>`
+          <div>${esc(a.reason)}</div><div style="margin-top:4px">Итог кейса: <b>${fmtScore(a.total_before)} → ${fmtScore(a.total_after)}</b></div></div></div>`
         : `<div class="cqa-card" style="box-shadow:none;background:var(--surface-2)"><div class="cqa-card-b cqa-grid" style="gap:12px">
             <div class="cqa-row"><b>Решение</b><div class="cqa-seg" data-dec>
               <button data-d="confirm" class="on">Подтвердить оценку</button><button data-d="change">Изменить оценку</button></div></div>
             <div data-change hidden class="cqa-grid" style="gap:10px">
               <div class="cqa-row"><span class="cqa-label" style="margin:0;width:110px">Новое значение</span><div class="cqa-seg" data-val>${valueButtons(c)}</div></div>
               ${c.critical ? `<label class="cqa-switch"><input type="checkbox" data-crit ${state.critical ? "checked" : ""}><i></i>Грубая ошибка</label>` : ""}
-              ${c.type === "flag" ? "" : `<div class="cqa-manual">
-                <label class="cqa-switch"><input type="checkbox" data-manual><i></i>Задать баллы вручную</label>
-                <div class="cqa-row" data-manual-box hidden style="margin-top:8px;gap:10px">
-                  <input class="cqa-input" type="number" min="0" max="${c.weight}" step="0.5" style="width:90px" data-points value="${c.weight / 2}">
-                  <span class="cqa-muted">из ${c.weight} (вес критерия) — например, частичный балл за «Да / Нет».
-                  При N/A у других критериев вес пересчитается пропорционально.</span>
-                </div></div>`}
             </div>
             <div><label class="cqa-label">Проверяющий</label><input class="cqa-input" data-reviewer placeholder="ФИО проверяющего" value="${esc(remembered("cqa-reviewer"))}"></div>
             <div><label class="cqa-label">Причина решения (обязательно)</label><textarea class="cqa-textarea" data-reason placeholder="Например: оператор представился в реплике [9], критерий выполнен"></textarea></div>
@@ -94,19 +88,11 @@ export async function mount(el, ctx, [selId], top) {
 
     if (resolved) return;
     const p = $("[data-panel]");
-    const lowest = c.type === "scale" ? Math.min(...(c.scale.steps?.length ? c.scale.steps : [c.scale.min])) : 0;
     const markVal = () => {
       p.querySelectorAll("[data-v]").forEach((b) => {
         const on = b.dataset.v === "na" ? state.na : !state.na && Number(b.dataset.v) === state.value;
         b.classList.toggle("on", on);
       });
-      // ручные баллы имеют смысл только для «Да» / ненулевой ступени: «Нет» и N/A — это 0 и исключение из расчёта
-      const box = p.querySelector(".cqa-manual");
-      if (box) {
-        const allowed = !state.na && state.value > lowest;
-        box.hidden = !allowed;
-        if (!allowed) { p.querySelector("[data-manual]").checked = false; p.querySelector("[data-manual-box]").hidden = true; }
-      }
     };
     markVal();
     p.querySelector("[data-dec]").onclick = (e) => {
@@ -116,7 +102,6 @@ export async function mount(el, ctx, [selId], top) {
       p.querySelectorAll("[data-d]").forEach((x) => x.classList.toggle("on", x === b));
       p.querySelector("[data-change]").hidden = state.decision !== "change";
     };
-    p.querySelector("[data-manual]")?.addEventListener("change", (e) => { p.querySelector("[data-manual-box]").hidden = !e.target.checked; });
     p.querySelector("[data-val]").onclick = (e) => {
       const b = e.target.closest("[data-v]");
       if (!b) return;
@@ -132,7 +117,6 @@ export async function mount(el, ctx, [selId], top) {
         const body = { decision: state.decision, reason: p.querySelector("[data-reason]").value, reviewer: name ? `Проверяющий ${name}` : "Проверяющий" };
         if (state.decision === "change") {
           Object.assign(body, { value: state.value, na: state.na, critical_error: !!p.querySelector("[data-crit]")?.checked });
-          if (p.querySelector("[data-manual]")?.checked && !state.na && state.value > lowest) body.manual_points = Number(p.querySelector("[data-points]").value);
         }
         const r = await ctx.api.decide(a.id, body);
         toast(`Решение сохранено. Итог: ${fmtScore(r.total_before)} → ${fmtScore(r.total_after)}`);
