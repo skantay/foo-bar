@@ -392,9 +392,11 @@ async def run_evaluations(body: dict = Body(...)):
         dialogs = [d for d in db.all("dialogs") if body.get("dataset") in (None, d["dataset"])]
     if not dialogs:
         raise HTTPException(400, "Нет диалогов для оценки")
+    if evaluator.backend() == "none":
+        raise HTTPException(400, evaluator.NO_MODEL)
     job = {"id": db.new_id("job"), "status": "running", "checklist_id": checklist["id"],
            "checklist_version": checklist["version"], "total": len(dialogs), "done": 0, "finished": 0,
-           "failed": [], "cost_usd": 0.0, "model": evaluator.MODEL if evaluator.has_llm() else "mock"}
+           "failed": [], "cost_usd": 0.0, "model": evaluator.MODEL if evaluator.has_llm() else evaluator.backend()}
     db.put("jobs", job)
     JOBS[job["id"]] = job
     asyncio.get_running_loop().create_task(run_job(job, dialogs, checklist))
@@ -799,7 +801,7 @@ def accuracy(checklist_id: str | None = None):
 def health():
     b = evaluator.backend()
     return {"ok": True, "llm": evaluator.has_llm(), "backend": b,
-            "model": "mock" if b == "mock" else evaluator.MODEL + (" · claude -p" if b == "cli" else ""),
+            "model": {"mock": "mock (ненастоящие оценки)", "none": "не подключена"}.get(b) or evaluator.MODEL + (" · claude -p" if b == "cli" else ""),
             "effort": evaluator.EFFORT, "samples": evaluator.SAMPLES, "concurrency": CONCURRENCY}
 
 

@@ -305,15 +305,23 @@ _client: anthropic.AsyncAnthropic | None = None
 
 
 def backend() -> str:
+    """api / cli / mock — как задано; auto — что доступно, иначе none.
+
+    Мок только по явному CQA_BACKEND=mock: без модели оценка честно падает с ошибкой,
+    а не подменяется правдоподобной заглушкой.
+    """
     if BACKEND in ("api", "cli", "mock"):
         return BACKEND
     if os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"):
         return "api"
-    return "cli" if shutil.which("claude") else "mock"
+    return "cli" if shutil.which("claude") else "none"
 
 
 def has_llm() -> bool:
-    return backend() != "mock"
+    return backend() in ("api", "cli")
+
+
+NO_MODEL = "Модель не подключена: задайте ANTHROPIC_API_KEY или установите Claude Code (claude -p)"
 
 
 def client() -> anthropic.AsyncAnthropic:
@@ -537,9 +545,11 @@ async def evaluate(dialog: dict, checklist: dict) -> dict:
         model = ok[0]["model"]
         usage = {k: sum(r["usage"][k] for r in ok) for k in ok[0]["usage"]}
         cost = round(sum(r["cost_usd"] for r in ok), 5) if backend() == "cli" else cost_usd(MODEL, usage)
-    else:
+    elif backend() == "mock":
         ok = absorb([{"raw": mock_raw(sent, checklist, i)} for i in range(SAMPLES)])
         model, usage, cost = "mock", {}, 0.0
+    else:
+        raise RuntimeError(NO_MODEL)
     planned = SAMPLES if not has_llm() or len(ok) >= SAMPLES or not unanimous() else len(ok)
     if len(ok) < planned:
         warnings.append(f"Успешных прогонов {len(ok)} из {planned}")

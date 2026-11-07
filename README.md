@@ -7,7 +7,7 @@
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env                      # вставьте ссылку GET из гайда организаторов в CQA_SOURCE_URL
-export ANTHROPIC_API_KEY=sk-ant-...      # или без ключа: через установленный Claude Code (`claude -p`), иначе мок
+export ANTHROPIC_API_KEY=sk-ant-...      # или без ключа: через установленный Claude Code (`claude -p`)
 ./run.sh                                  # http://127.0.0.1:8000
 ```
 
@@ -18,7 +18,7 @@ export ANTHROPIC_API_KEY=sk-ant-...      # или без ключа: через 
 | Переменная | По умолчанию | Что делает |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | ключ Claude API |
-| `CQA_BACKEND` | `auto` | `api` (по ключу), `cli` (через `claude -p`: те же промпт и JSON-схема, `--safe-mode` без CLAUDE.md и инструментов), `mock`; `auto` выбирает первое доступное |
+| `CQA_BACKEND` | `auto` | `api` (по ключу), `cli` (через `claude -p`: те же промпт и JSON-схема, `--safe-mode` без CLAUDE.md и инструментов), `mock` (демо-заглушка, только явно); `auto` выбирает первое доступное, а без модели оценка не запускается |
 | `CQA_CLI_PARALLEL` | `6` | сколько вызовов `claude -p` одновременно |
 | `CQA_MODEL` | `claude-opus-5-5` | модель оценки |
 | `CQA_EFFORT` | `high` | глубина рассуждения (`low` … `max`) |

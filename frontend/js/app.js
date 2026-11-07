@@ -94,7 +94,9 @@ class CqaApp extends HTMLElement {
       this.querySelector("[data-foot]").innerHTML = `
         <div>Модель: <b>${esc(health.model)}</b>${health.llm ? ` · effort ${esc(health.effort)} · ×${health.samples}` : ""}</div>
         <div style="margin-top:4px">Чек-лист: <b>${esc(checklist.name)}</b> · v${checklist.version}</div>
-        ${health.llm ? "" : `<div style="margin-top:6px;color:#ffd27a">Нет ANTHROPIC_API_KEY — включён мок-оценщик</div>`}`;
+        ${health.llm ? "" : health.backend === "mock"
+          ? `<div style="margin-top:6px;color:#ffd27a">Демо-режим: оценки ненастоящие (CQA_BACKEND=mock)</div>`
+          : `<div style="margin-top:6px;color:#ffd27a">Модель не подключена: задайте ANTHROPIC_API_KEY или установите Claude Code</div>`}`;
     } catch (e) {
       toast(`API недоступен: ${e.message}`, true);
     }
