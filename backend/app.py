@@ -1,5 +1,6 @@
 """CQA — Conversation Quality Analytics: API + статика интерфейса."""
 import asyncio
+import html
 import json
 import logging
 import os
@@ -8,9 +9,9 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
-from fastapi import Body, FastAPI, File, HTTPException, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -291,6 +292,56 @@ def get_dialog(dialog_id: str):
     evals = [e for e in db.all("evaluations") if e["dialog_id"] == dialog_id]
     d["evaluations"] = [eval_brief(e) for e in reversed(evals)]
     return d
+
+
+# Записи звонков: audio_url отдаёт HTML-страницу с <source src="…mp3…"> (подписанная ссылка живёт час),
+# а сервер записи не поддерживает Range — без него браузер не перематывает. Поэтому скачиваем mp3
+# по свежей ссылке и отдаём сами, с Range. Держим только в памяти — реальные записи не пишем на диск.
+AUDIO: dict[str, tuple[bytes, str]] = {}
+AUDIO_MAX = 60 * 1024 * 1024
+
+
+async def fetch_audio(url: str) -> tuple[bytes, str]:
+    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as http:
+        r = await http.get(url)
+        r.raise_for_status()
+        ct = r.headers.get("content-type", "")
+        if not ct.startswith("audio/"):
+            m = re.search(r'<source[^>]+src="([^"]+)"', r.text)
+            if not m:
+                raise ValueError("на странице записи нет ссылки на аудио")
+            r = await http.get(httpx.URL(url).join(html.unescape(m.group(1))))
+            r.raise_for_status()
+            ct = r.headers.get("content-type", "")
+        if not ct.startswith("audio/") or len(r.content) > AUDIO_MAX:
+            raise ValueError("ответ не похож на аудиозапись")
+        return r.content, ct.split(";")[0]
+
+
+@app.get("/api/dialogs/{dialog_id}/audio")
+async def dialog_audio(dialog_id: str, request: Request):
+    d = db.get("dialogs", dialog_id)
+    if not d or not d.get("audio_url"):
+        raise HTTPException(404, "У диалога нет записи")
+    if dialog_id not in AUDIO:
+        try:
+            AUDIO[dialog_id] = await fetch_audio(d["audio_url"])
+        except (httpx.HTTPError, ValueError) as e:
+            raise HTTPException(502, f"Запись недоступна: {e}")
+        while len(AUDIO) > 20:
+            AUDIO.pop(next(iter(AUDIO)))
+    data, ct = AUDIO[dialog_id]
+    head = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600"}
+    m = re.fullmatch(r"bytes=(\d*)-(\d*)", request.headers.get("range", ""))
+    if not m or not (m.group(1) or m.group(2)):
+        return Response(data, media_type=ct, headers=head)
+    n = len(data)
+    start, end = (int(m.group(1)), int(m.group(2) or n - 1)) if m.group(1) else (n - int(m.group(2)), n - 1)
+    start, end = max(0, start), min(end, n - 1)
+    if start > end:
+        return Response(status_code=416, headers={**head, "Content-Range": f"bytes */{n}"})
+    return Response(data[start:end + 1], status_code=206, media_type=ct,
+                    headers={**head, "Content-Range": f"bytes {start}-{end}/{n}"})
 
 
 @app.delete("/api/dialogs/{dialog_id}")

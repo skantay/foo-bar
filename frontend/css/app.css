@@ -883,3 +883,7 @@ cqa-app .cqa-appeals.empty .cqa-empty { text-align: center; padding: 72px 16px; 
 .cqa-mis { font-size: 12.5px; padding: 2px 0; }
 .cqa-mis + .cqa-mis { border-top: 1px dashed var(--line-2); }
 cqa-app .cqa-top .cqa-back { flex: none; white-space: nowrap; }
+/* запись звонка */
+cqa-app .cqa-audio audio { width: 100%; height: 36px; display: block; margin-bottom: 2px; }
+cqa-app .cqa-audio ~ * .cqa-turn, cqa-app .cqa-snippet.has-audio .cqa-turn { cursor: pointer; }
+cqa-app .cqa-turn.playing .bubble { box-shadow: 0 0 0 2px var(--brand-2); }

@@ -1,7 +1,7 @@
 // <cqa-case dialog-id="..." api-base="..."> — карточка кейса: транскрипт + оценка + апелляции.
 // Самодостаточный компонент: его можно встроить отдельно на форму обращения в Dynamics 365.
 import { Api } from "../api.js";
-import { answerView, esc, fmtScore, fmtTs, icon, langTag, markOf, money, remember, remembered, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
+import { answerView, audioOffsets, esc, fmtOffset, fmtScore, fmtTs, icon, langTag, markOf, money, playerHtml, remember, remembered, scoreClass, speakerName, timeAgo, toast, wirePlayer } from "../ui.js";
 
 const PII_LABEL = { PHONE: "телефон", IIN: "ИИН", CARD: "карта", IBAN: "IBAN", EMAIL: "email",
   "ИМЯ_ОПЕРАТОРА": "имя оператора", "ИМЯ_КЛИЕНТА": "имя клиента" };
@@ -47,9 +47,7 @@ class CqaCase extends HTMLElement {
         <div class="cqa-card-h"><h3>Транскрипт</h3>${langTag(d.language)}
           <span class="cqa-chip">${d.channel === "voice call" ? "Звонок" : "Чат"}</span>
           <span class="cqa-faint" style="margin-left:auto">${d.transcript.length} реплик</span></div>
-        ${d.audio_url ? `<div class="cqa-audio">${icon.phone.replace("<svg", '<svg width="18"')}<div class="cqa-grow"><b>Запись звонка</b>
-          <div class="cqa-faint" style="font-size:12px">Метки «+мм:сс» у реплик — смещение от начала записи</div></div>
-          <a class="cqa-btn sm primary" href="${esc(d.audio_url)}" target="_blank" rel="noopener">${icon.play} Открыть плеер</a></div>` : ""}
+        ${d.audio_url ? playerHtml(`${this.api.base}/api/dialogs/${encodeURIComponent(d.id)}/audio`, d.audio_url) : ""}
         <div class="cqa-trbar"><input class="cqa-input" data-search placeholder="Поиск по транскрипту">
           <label class="cqa-switch" title="Показывать реплики бота и системные события"><input type="checkbox" data-ctx checked><i></i>Бот и система</label></div>
         <div class="cqa-card-b" data-tr>${this.renderTranscript()}</div>
@@ -61,16 +59,12 @@ class CqaCase extends HTMLElement {
 
   renderTranscript() {
     const t = this.dialog.transcript;
-    const start = Date.parse(t.find((x) => /^\d{4}-/.test(x.timestamp))?.timestamp || "");
+    const offs = this.dialog.audio_url ? audioOffsets(t) : [];
     return t.map((x, i) => {
-      let off = "";
-      if (!isNaN(start) && /^\d{4}-/.test(x.timestamp)) {
-        const s = Math.max(0, Math.round((Date.parse(x.timestamp) - start) / 1000));
-        off = `+${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-      }
+      const off = offs[i] != null ? fmtOffset(offs[i]) : "";
       return `<div class="cqa-turn ${esc(x.speaker)}" data-turn="${i}" id="cqa-turn-${i}">
         <div class="n">${i}</div>
-        <div class="bubble"><div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time title="${esc(x.timestamp)}">${esc(off || fmtTs(x.timestamp))}</time></div>
+        <div class="bubble"><div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time title="${esc(x.timestamp)}" data-off>${esc(off || fmtTs(x.timestamp))}</time></div>
         <div class="txt${x.speaker === "bot" && x.text.length > 140 ? " clamp" : ""}" title="${x.speaker === "bot" && x.text.length > 140 ? "Нажмите, чтобы развернуть" : ""}">${esc(x.text)}</div></div></div>`;
     }).join("");
   }
@@ -257,6 +251,7 @@ class CqaCase extends HTMLElement {
           : esc(x.text);
       });
     };
+    wirePlayer(this.querySelector(".cqa-transcript"), this.dialog.transcript);
     search.addEventListener("input", applyFilter);
     ctxToggle.addEventListener("change", applyFilter);
     this.addEventListener("click", this.onClick ||= (e) => this.handleClick(e));

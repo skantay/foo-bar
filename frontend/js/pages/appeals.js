@@ -1,4 +1,4 @@
-import { answerView, esc, fmtScore, fmtTs, icon, remember, remembered, speakerName, timeAgo, toast, valueOptions } from "../ui.js";
+import { answerView, audioOffsets, esc, fmtOffset, fmtScore, fmtTs, icon, playerHtml, remember, remembered, speakerName, timeAgo, toast, valueOptions, wirePlayer } from "../ui.js";
 
 export async function mount(el, ctx, [selId], top) {
   let tab = "open";
@@ -46,6 +46,7 @@ export async function mount(el, ctx, [selId], top) {
     else if (ans.checked_range) { lo = ans.checked_range.from_turn; hi = ans.checked_range.to_turn; }
     else { lo = 0; hi = t.length - 1; }
 
+    const offs = dialog.audio_url ? audioOffsets(t) : [];
     const state = { decision: "confirm", value: a.disputed_value, na: a.disputed_na, critical: !!ans.critical_error };
     const resolved = a.status === "resolved";
 
@@ -65,11 +66,13 @@ export async function mount(el, ctx, [selId], top) {
         <div><label class="cqa-label">Обоснование модели</label>
           <div>${esc(ans.na ? ans.na_reason || ans.explanation : ans.explanation)}</div>
           ${ans.evidence.length ? `<div class="cqa-faint" style="font-size:12px;margin-top:4px">Доказательства: ${ans.evidence.map((e) => `[${e.turn}]`).join(", ")}</div>` : ""}</div>
-        <div><label class="cqa-label">Фрагмент диалога · реплики ${lo}–${hi}</label>
-          <div class="cqa-snippet">${t.slice(lo, hi + 1).map((x, k) => {
+        <div data-player><label class="cqa-label">Фрагмент диалога · реплики ${lo}–${hi}</label>
+          ${dialog.audio_url ? playerHtml(`${ctx.api.base}/api/dialogs/${encodeURIComponent(dialog.id)}/audio`, dialog.audio_url) : ""}
+          <div class="cqa-snippet${dialog.audio_url ? " has-audio" : ""}">${t.slice(lo, hi + 1).map((x, k) => {
             const i = lo + k;
-            return `<div class="cqa-turn ${esc(x.speaker)} ${ids.has(i) ? "ev" : ""}"><div class="n">${i}</div><div class="bubble">
-              <div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time>${esc(fmtTs(x.timestamp))}</time></div><div class="txt">${esc(x.text)}</div></div></div>`;
+            const off = offs[i] != null ? fmtOffset(offs[i]) : "";
+            return `<div class="cqa-turn ${esc(x.speaker)} ${ids.has(i) ? "ev" : ""}" data-turn="${i}"><div class="n">${i}</div><div class="bubble">
+              <div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time data-off title="${esc(x.timestamp)}">${esc(off || fmtTs(x.timestamp))}</time></div><div class="txt">${esc(x.text)}</div></div></div>`;
           }).join("")}</div></div>
         ${resolved ? `<div class="cqa-alert info">${icon.check}<div><b>${a.decision === "change" ? "Оценка изменена" : "Оценка подтверждена"}</b> · ${esc(a.reviewer)} · ${timeAgo(a.resolved_at)}
           <div>${esc(a.reason)}</div><div style="margin-top:4px">Итог кейса: <b>${fmtScore(a.total_before)} → ${fmtScore(a.total_after)}</b></div></div></div>`
@@ -86,6 +89,7 @@ export async function mount(el, ctx, [selId], top) {
           </div></div>`}
       </div></div>`;
 
+    wirePlayer($("[data-player]"), t);
     if (resolved) return;
     const p = $("[data-panel]");
     const markVal = () => {

@@ -241,3 +241,68 @@ export const ARMY = `<svg viewBox="0 0 260 420" aria-hidden="true" focusable="fa
 export const BRAND_MARK = `<svg viewBox="0 0 1108 1280" aria-hidden="true" focusable="false">
 <path class="d" d="M0 0h1108v300c0 560-250 860-554 980C250 1160 0 860 0 300Z"/>
 <path class="l" d="M0 0h1108v80c0 150-80 232-238 232H427v256h446v82c0 150-56 230-232 230H427v338C180 1062 0 800 0 300Z"/></svg>`;
+
+// ---------- запись звонка ----------
+// Смещение реплик в записи, сек. Запись начинается с события «Запись и транскрибирование запущены»;
+// на паузе («приостановлены» → «возобновлены») в файл попадает лишь часть времени, поэтому после
+// последнего возобновления считаем от конца записи (сверено по тишине на звонках DEV).
+// null — реплика вне записи: до старта или внутри паузы.
+const REC = { start: /(запис|record|жазу)[^.]*(запущен|start|басталд)/i, pause: /приостановлен|paused|тоқтатыл/i, resume: /возобновлен|resumed|жалғастырыл/i };
+
+export function audioOffsets(t, duration = null) {
+  const at = t.map((x) => (/^\d{4}-/.test(x.timestamp) ? Date.parse(x.timestamp) / 1000 : NaN));
+  const ev = (i, re) => t[i].speaker === "system" && re.test(t[i].text);
+  const s = t.findIndex((_, i) => ev(i, REC.start));
+  const t0 = s >= 0 ? at[s] : at.find((v) => !isNaN(v));
+  if (t0 == null || isNaN(t0)) return t.map(() => null);
+  const end = Math.max(...at.filter((v) => !isNaN(v)));
+  const lastResume = t.findLastIndex((_, i) => ev(i, REC.resume));
+  let paused = 0, pauseAt = null;
+  return t.map((x, i) => {
+    const v = at[i];
+    if (isNaN(v) || v < t0) return null;
+    if (ev(i, REC.resume) && pauseAt != null) { paused += v - pauseAt; pauseAt = null; }
+    if (pauseAt != null) return null;
+    const off = duration && lastResume >= 0 && i >= lastResume ? duration - (end - v) : v - t0 - paused;
+    if (ev(i, REC.pause)) pauseAt = v;
+    return Math.max(0, off);
+  });
+}
+
+export const fmtOffset = (s) => `+${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+export const playerHtml = (src, href) => `<div class="cqa-audio">${icon.phone.replace("<svg", '<svg width="18"')}<div class="cqa-grow">
+    <audio controls preload="metadata" src="${esc(src)}" data-audio></audio>
+    <div class="cqa-faint" style="font-size:12px" data-audio-hint>Нажмите на реплику — запись перейдёт к ней. Метка «+мм:сс» — время в записи</div></div>
+    <a class="cqa-btn sm" href="${esc(href)}" target="_blank" rel="noopener">${icon.ext} Открыть запись</a></div>`;
+
+// Плеер ↔ реплики: клик по реплике — перемотка, при воспроизведении подсвечена текущая реплика.
+// Прокрутку не трогаем: пользователь сам листает транскрипт.
+export function wirePlayer(root, transcript) {
+  const audio = root.querySelector("[data-audio]");
+  if (!audio) return;
+  let offs = audioOffsets(transcript);
+  const labels = () => root.querySelectorAll("[data-turn] time[data-off]").forEach((el) => {
+    const o = offs[+el.closest("[data-turn]").dataset.turn];
+    if (o != null) el.textContent = fmtOffset(o);
+  });
+  audio.addEventListener("loadedmetadata", () => { offs = audioOffsets(transcript, audio.duration); labels(); });
+  audio.addEventListener("error", () => {
+    audio.hidden = true;
+    root.querySelector("[data-audio-hint]").textContent = "Запись не загрузилась — откройте её по кнопке справа";
+  });
+  root.addEventListener("click", (e) => {
+    if (audio.hidden || e.target.closest("button, a, input, .clamp")) return;
+    const el = e.target.closest("[data-turn]");
+    const o = el && offs[+el.dataset.turn];
+    if (o == null) return;
+    audio.currentTime = o;
+    audio.play().catch(() => {});
+  });
+  audio.addEventListener("timeupdate", () => {
+    let cur = -1;
+    offs.forEach((o, i) => { if (o != null && o <= audio.currentTime + 0.3) cur = i; });
+    root.querySelectorAll("[data-turn].playing").forEach((el) => el.classList.remove("playing"));
+    if (!audio.paused || audio.currentTime > 0) root.querySelector(`[data-turn="${cur}"]`)?.classList.add("playing");
+  });
+}

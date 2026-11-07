@@ -284,3 +284,45 @@ def test_job_eta_from_own_pace(client, monkeypatch):
     assert client.get("/api/jobs/job_eta").json()["eta_s"] == 60  # 40 с на 4 диалога → ещё 6 за 60 с
     job["finished"] = 0
     assert client.get("/api/jobs/job_eta").json()["eta_s"] is None
+
+
+# ---------- запись звонка ----------
+
+MP3 = b"ID3" + bytes(range(256)) * 4
+
+
+def fake_recordings(monkeypatch, pages):
+    """Сервер записей как у организаторов: HTML-страница с <source>, mp3 без поддержки Range."""
+    import httpx
+
+    def handler(req):
+        if req.url.path == "/player/1":
+            return httpx.Response(200, headers={"content-type": "text/html; charset=utf-8"}, text=pages["page"])
+        if req.url.path == "/rec.mp3":
+            assert req.url.params.get("sig") == "s" and req.url.params.get("sv") == "1"  # &amp; раскодирован
+            return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=MP3)
+        return httpx.Response(404)
+    real = httpx.AsyncClient
+    monkeypatch.setattr(app_module.httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    app_module.AUDIO.clear()
+
+
+def test_audio_from_player_page_with_range(loaded, monkeypatch):
+    fake_recordings(monkeypatch, {"page": '<audio><source src="/rec.mp3?sig=s&amp;sv=1" type="audio/mpeg"></audio>'})
+    r = loaded.get("/api/dialogs/t-call-001/audio")
+    assert r.status_code == 200 and r.content == MP3 and r.headers["accept-ranges"] == "bytes"
+    r = loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": "bytes=10-19"})
+    assert r.status_code == 206 and r.content == MP3[10:20] and r.headers["content-range"] == f"bytes 10-19/{len(MP3)}"
+    r = loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": "bytes=-5"})
+    assert r.status_code == 206 and r.content == MP3[-5:]
+    assert loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": f"bytes={len(MP3)}-"}).status_code == 416
+
+
+def test_audio_page_without_source_is_502(loaded, monkeypatch):
+    fake_recordings(monkeypatch, {"page": "<html>Ссылка устарела</html>"})
+    r = loaded.get("/api/dialogs/t-call-001/audio")
+    assert r.status_code == 502 and "Запись недоступна" in r.json()["detail"]
+
+
+def test_chat_has_no_audio(loaded):
+    assert loaded.get("/api/dialogs/t-ru-001/audio").status_code == 404
