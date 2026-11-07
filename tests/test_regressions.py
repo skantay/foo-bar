@@ -274,3 +274,13 @@ def test_organizers_file_with_dialog_without_operator_is_accepted(client):
                                                   {"timestamp": "06:00", "speaker": "system", "text": "Чат закрыт"}]}]}}
     r = client.post("/api/dialogs/upload", files={"file": ("ctrl.json", json.dumps(payload), "application/json")})
     assert r.status_code == 200 and r.json()["dataset"] == "CTRL"
+
+
+def test_job_eta_from_own_pace(client, monkeypatch):
+    """Прогресс оценки: «осталось ≈» по темпу самой задачи; до первого результата — без оценки."""
+    job = {"id": "job_eta", "status": "running", "total": 10, "finished": 4, "created_at": 1000.0, "failed": []}
+    monkeypatch.setitem(app_module.JOBS, "job_eta", job)
+    monkeypatch.setattr(app_module.db, "now", lambda: 1040.0)
+    assert client.get("/api/jobs/job_eta").json()["eta_s"] == 60  # 40 с на 4 диалога → ещё 6 за 60 с
+    job["finished"] = 0
+    assert client.get("/api/jobs/job_eta").json()["eta_s"] is None

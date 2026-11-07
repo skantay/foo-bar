@@ -880,3 +880,6 @@ cqa-app .cqa-appeals.empty .cqa-empty { text-align: center; padding: 72px 16px; 
   cqa-app .cqa-table th, cqa-app .cqa-table td { padding-left: 10px; padding-right: 10px; }
   cqa-app .cqa-table td .cqa-preview { max-width: 150px; }
 }
+.cqa-mis { font-size: 12.5px; padding: 2px 0; }
+.cqa-mis + .cqa-mis { border-top: 1px dashed var(--line-2); }
+cqa-app .cqa-top .cqa-back { flex: none; white-space: nowrap; }

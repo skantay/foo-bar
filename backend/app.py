@@ -503,7 +503,11 @@ def get_job(job_id: str):
     j = JOBS.get(job_id) or db.get("jobs", job_id)
     if not j:
         raise HTTPException(404, "Задача не найдена")
-    return j
+    eta = None
+    if j["status"] == "running" and j.get("finished"):
+        # темп этой же задачи (с учётом параллельных прогонов) × сколько осталось
+        eta = round((db.now() - j["created_at"]) / j["finished"] * (j["total"] - j["finished"]))
+    return {**j, "eta_s": eta}
 
 
 @app.get("/api/evaluations/{eid}")
@@ -622,7 +626,8 @@ def stats(checklist_id: str | None = None):
             by_lang.setdefault(d.get("language", "?"), []).append(e["final_result"]["total"])
     costs = [e.get("cost_usd", 0) for e in latest if e.get("model") != "mock"]
     return {
-        "checklist": {"id": checklist["id"], "name": checklist["name"], "version": checklist["version"]},
+        "checklist": {"id": checklist["id"], "name": checklist["name"], "version": checklist["version"],
+                      "created_at": checklist.get("created_at")},
         "evaluated": len(latest), "dialogs": len(db.all("dialogs")),
         "avg_total": round(sum(totals) / len(totals), 1) if totals else None,
         # без порога в чек-листе «прошёл/не прошёл» не определено

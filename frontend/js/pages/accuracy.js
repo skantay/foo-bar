@@ -5,8 +5,8 @@ export async function mount(el, ctx, _params, top) {
   ctx.setTitle("Точность", "Сравнение оценок ИИ с эталонными оценками экспертов");
   const sets = await ctx.api.datasets().catch(() => []);
   top.innerHTML = `
-    <select class="cqa-select" data-ds title="Набор для results.json">${sets.map((d) => `<option value="${esc(d.id)}">${esc(d.id)} (${d.count})</option>`).join("")}</select>
-    <button class="cqa-btn primary" data-exp="official" title="Файл для сдачи организаторам: results/dev|prod/results.json">${icon.down} results.json</button>
+    <select class="cqa-select" data-ds title="Набор для выгрузки организаторам">${sets.map((d) => `<option value="${esc(d.id)}">${esc(d.id)} (${d.count})</option>`).join("")}</select>
+    <button class="cqa-btn primary" data-exp="official" title="Файл results.json в формате организаторов (results/dev|prod/results.json)">${icon.down} Выгрузка для организаторов</button>
     <button class="cqa-btn" data-exp="csv">${icon.down} Экспорт CSV</button>
     <button class="cqa-btn" data-exp="json">${icon.down} Экспорт JSON</button>
     <button class="cqa-btn primary" data-gt>${icon.upload} Загрузить эталон</button>
@@ -27,7 +27,7 @@ export async function mount(el, ctx, _params, top) {
         Эталонов пока нет. Загрузите файл с оценками экспертов или откройте диалог, проверьте оценку и нажмите <b>«В эталон»</b>.<br>
         Формат JSON: <code class="cqa-mono">[{"conversation_id": "p1-ru-001", "criteria": {"contact": "Да", "consultation": 15, "closing": "N/A", ...}, "total": 87.5}]</code>.
         CSV: колонки <code class="cqa-mono">conversation_id, ${cl.criteria.map((c) => esc(c.id)).join(", ")}</code> и необязательная <code class="cqa-mono">total</code>.</div></div>` : ""}
-      <div class="cqa-grid" style="grid-template-columns: 1fr 1.4fr">
+      <div class="cqa-grid">
         <div class="cqa-card"><div class="cqa-card-h"><h3>По критериям</h3></div><div class="cqa-card-b">
           ${crit.map(([id, v]) => `<div class="cqa-crit-row" style="grid-template-columns:1fr 160px 90px">
             <div><div style="font-weight:600">${esc(v.name)}</div><div class="cqa-faint" style="font-size:12px">${v.match}/${v.n} совпало · ошибка ${fmtScore(v.mae * 100)}% шкалы</div></div>
@@ -40,7 +40,7 @@ export async function mount(el, ctx, _params, top) {
             <td><b class="cqa-mono">${esc(d.conversation_id)}</b></td>
             ${d.evaluated ? `<td>${fmtScore(d.gt_total)}</td><td>${fmtScore(d.ai_total)}</td>
               <td><b style="color:${d.abs_err > 10 ? "var(--no)" : d.abs_err > 3 ? "#a86a00" : "#00835f"}">${fmtScore(d.abs_err)}</b></td>
-              <td>${d.mismatches.map((m) => `<span class="cqa-chip no" title="ИИ: ${esc(m.ai)} · эталон: ${esc(m.gt)}">${esc(m.criterion_id)}: ${esc(m.ai)} ≠ ${esc(m.gt)}</span>`).join(" ") || `<span class="cqa-chip yes">полное совпадение</span>`}</td>`
+              <td>${d.mismatches.map((m) => mismatch(cl, m)).join("") || `<span class="cqa-chip yes">полное совпадение</span>`}</td>`
               : `<td colspan="4" class="cqa-muted">не оценён по активной версии чек-листа</td>`}
             <td data-stop><button class="cqa-btn ghost sm danger" data-del="${esc(d.conversation_id)}" title="Удалить эталон">${icon.trash}</button></td>
           </tr>`).join("") || `<tr><td colspan="6" class="cqa-empty">—</td></tr>`}
@@ -64,7 +64,7 @@ export async function mount(el, ctx, _params, top) {
       try { r = await ctx.api.officialResults(ds); } catch (err) { return toast(err.message, true); }
       download("results.json", JSON.stringify(r.document, null, 2));
       const err = r.document.results.filter((x) => x.status === "error").length;
-      toast(r.problems.length ? `results.json: ${r.problems.length} проблем — ${r.problems[0]}` : `results.json: ${r.document.results.length} записей, ошибок ${err}`,
+      toast(r.problems.length ? `Выгрузка: ${r.problems.length} проблем — ${r.problems[0]}` : `Выгрузка results.json: ${r.document.results.length} записей, ошибок ${err}`,
         r.problems.length > 0);
     }
     if (exp === "csv") location.href = ctx.api.exportUrl("csv");
@@ -97,6 +97,14 @@ function parseCsv(text) {
     const { conversation_id, total, ...criteria } = row;
     return { conversation_id, total: total ? Number(total.replace(",", ".")) : null, criteria };
   });
+}
+
+// Расхождение с эталоном человеческим языком: «Консультация — ИИ: 15 из 20 · Эталон: 20 из 20»
+function mismatch(cl, m) {
+  const c = cl.criteria.find((x) => x.id === m.criterion_id);
+  const max = c?.type === "scale" ? (c.scale.steps?.length ? Math.max(...c.scale.steps) : c.scale.max) : null;
+  const show = (v) => (v == null || v === "" ? "нет оценки" : max != null && String(v) !== "N/A" ? `${fmtScore(v)} из ${max}` : String(v));
+  return `<div class="cqa-mis"><b>${esc(c?.name || m.criterion_id)}</b> — ИИ: ${esc(show(m.ai))} · Эталон: ${esc(show(m.gt))}</div>`;
 }
 
 const kpi = (k, v, s) => `<div class="cqa-card cqa-kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;

@@ -1,4 +1,4 @@
-import { channelIcon, esc, fmtScore, icon, langTag, modal, money, scorePill, statusChip, toast } from "../ui.js";
+import { channelIcon, esc, fmtScore, icon, langTag, modal, scorePill, statusChip, toast } from "../ui.js";
 
 const F = { q: "", lang: "", channel: "", status: "", dataset: "", crit: "", sort: "id", dir: 1 };
 const MARK_TEXT = { yes: "выполнен", ok: "нет нарушений", part: "частично", no: "не выполнен", na: "N/A", crit: "грубая ошибка", none: "—" };
@@ -194,12 +194,12 @@ export async function mount(el, ctx, _params, top) {
     const j = await ctx.api.job(id).catch(() => null);
     if (!j || stopped) return;
     const pct = Math.round((j.finished / j.total) * 100);
+    const eta = j.eta_s == null ? "" : j.eta_s < 60 ? " · осталось меньше минуты" : ` · осталось ≈ ${Math.round(j.eta_s / 60)} мин`;
     $("[data-job]").innerHTML = `<div class="cqa-job">
       ${j.status === "running" ? `<span class="cqa-spin"></span>` : icon.check.replace("<svg", '<svg width="16"')}
       <b>${j.status === "running" ? "Идёт оценка" : j.status === "interrupted" ? "Оценка прервана перезапуском — запустите заново" : "Оценка завершена"}</b>
-      <span>${j.finished} / ${j.total}${j.failed.length ? ` · ошибок ${j.failed.length}` : ""}</span>
       <div class="cqa-progress"><i style="width:${pct}%"></i></div>
-      <span class="cqa-muted">v${j.checklist_version} · ${esc(j.model)} · ${money(j.cost_usd)}</span>
+      <span>${j.finished} из ${j.total}${j.status === "running" ? eta : ""}${j.failed.length ? ` · ошибок ${j.failed.length}` : ""}</span>
       ${j.status !== "running" ? `<button class="cqa-btn ghost sm" data-close-job style="margin-left:auto">Скрыть</button>` : ""}
     </div>`;
     $("[data-close-job]")?.addEventListener("click", () => { ctx.app.activeJob = null; $("[data-job]").innerHTML = ""; });
