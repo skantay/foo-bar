@@ -1,0 +1,49 @@
+{
+  "error": "",
+  "isSuccess": true,
+  "data": {
+    "dataset_group_id": "TEST",
+    "total_records": 3,
+    "records": [
+      {
+        "conversation_id": "t-ru-001",
+        "channel": "agent chat",
+        "language": "RU",
+        "audio_url": null,
+        "transcript": [
+          {"timestamp": "00:00", "speaker": "client", "text": "Где посмотреть мой тариф?"},
+          {"timestamp": "00:02", "speaker": "bot", "text": "Здравствуйте! Я AIM, ассистент Freedom Broker."},
+          {"timestamp": "00:30", "speaker": "system", "text": "Эскалация на оператора."},
+          {"timestamp": "01:10", "speaker": "operator", "text": "Здравствуйте! Меня зовут Алина. Тариф указан во вкладке «Кабинет»."},
+          {"timestamp": "01:20", "speaker": "client", "text": "Нашла, спасибо. Мой номер +7 701 123 45 67, если что."},
+          {"timestamp": "05:00", "speaker": "operator", "text": "Рада помочь! Если появятся вопросы — пишите. До свидания!"}
+        ]
+      },
+      {
+        "conversation_id": "t-kz-001",
+        "channel": "agent chat",
+        "language": "KZ",
+        "audio_url": null,
+        "transcript": [
+          {"timestamp": "00:00", "speaker": "client", "text": "Есепті қайдан жүктеймін?"},
+          {"timestamp": "00:40", "speaker": "system", "text": "Чат операторға жіберілді."},
+          {"timestamp": "01:00", "speaker": "operator", "text": "Сәлеметсіз бе, мен Дана. «Отчёты и документы» бөлімін ашыңыз."},
+          {"timestamp": "01:30", "speaker": "client", "text": "Рақмет"}
+        ]
+      },
+      {
+        "conversation_id": "t-call-001",
+        "channel": "voice call",
+        "language": "RU",
+        "audio_url": "https://example.invalid/player/1",
+        "transcript": [
+          {"timestamp": "2026-11-03T15:49:13.1900670+00:00", "speaker": "system", "text": "Запись и транскрибирование запущены."},
+          {"timestamp": "2026-11-03T15:49:22.4171535+00:00", "speaker": "bot", "text": "Добро пожаловать в Фридом брокер."},
+          {"timestamp": "2026-11-03T15:50:30.0000000+00:00", "speaker": "operator", "text": "Добрый день, меня зовут Руслан, чем помочь?"},
+          {"timestamp": "2026-11-03T15:50:40.0000000+00:00", "speaker": "client", "text": "Хочу узнать комиссию."},
+          {"timestamp": "2026-11-03T15:54:50.0000000+00:00", "speaker": "operator", "text": "Комиссия зависит от тарифа, всего доброго."}
+        ]
+      }
+    ]
+  }
+}
