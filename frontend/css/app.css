@@ -857,21 +857,7 @@ cqa-app .cqa-top .cqa-back { flex: none; white-space: nowrap; gap: 6px; padding:
 cqa-app .cqa-top .cqa-back:hover { background: var(--brand-2); color: #fff; border-color: transparent; }
 cqa-app .cqa-top .cqa-back svg { width: 16px; height: 16px; }
 cqa-app .cqa-top .cqa-back:not([hidden]) + div { padding-left: 14px; border-left: 1px solid var(--line); }
-/* обзор: распределение и языки — рядом, под выполнением критериев */
-cqa-app .cqa-dash-pair { grid-template-columns: 1fr 1fr; align-items: stretch; }
-cqa-app .cqa-dash-pair > .cqa-card { margin: 0; }
-@media (max-width: 760px) { cqa-app .cqa-dash-pair { grid-template-columns: minmax(0, 1fr); } }
-/* обзор помещается на один экран ноутбука: компактнее отступы */
-cqa-app .cqa-dash .cqa-kpis { margin-bottom: 12px; }
-cqa-app .cqa-dash .cqa-kpi { padding: 12px 18px; }
-cqa-app .cqa-dash .cqa-kpi .v { font-size: 26px; margin-top: 2px; }
-cqa-app .cqa-dash .cqa-grid { gap: 12px; }
-cqa-app .cqa-dash .cqa-card-h { padding: 11px 20px; }
-cqa-app .cqa-dash .cqa-card-b { padding-top: 8px; padding-bottom: 10px; }
-cqa-app .cqa-dash .cqa-crit-row { padding: 6px 0; }
-cqa-app .cqa-dash .cqa-bars { height: 112px; }
 /* фоновый знак не удлиняет страницу: обрезается по окну рабочей области */
 @media (min-width: 761px) {
   cqa-app .cqa-brandmark { position: fixed; top: 0; right: 0; bottom: 0; left: 232px; height: auto; overflow: hidden; }
 }
-cqa-app .cqa-page:has(> .cqa-dash) { padding-bottom: 24px; }
