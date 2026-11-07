@@ -9,7 +9,7 @@ export async function mount(el, ctx, _params, top) {
   const maxBar = Math.max(1, ...s.distribution);
   const crit = Object.entries(s.criteria);
 
-  el.innerHTML = `
+  el.innerHTML = `<div class="cqa-dash">
     ${!s.evaluated ? `<div class="cqa-alert info" style="margin-bottom:16px">${icon.alert}<div>Пока нет оценок по этой версии чек-листа. Откройте <a href="#/dialogs">Диалоги</a> и запустите оценку.</div></div>` : ""}
     <div class="cqa-kpis">
       ${kpi("Средний балл", s.avg_total == null ? "—" : `${fmtScore(s.avg_total)}<small>/100</small>`, `${s.evaluated} из ${s.dialogs} диалогов оценено`, scoreClass(s.avg_total))}
@@ -38,7 +38,7 @@ export async function mount(el, ctx, _params, top) {
           }).join("")}
         </div>
       </div>
-      <div class="cqa-grid">
+      <div class="cqa-grid cqa-dash-pair">
         <div class="cqa-card">
           <div class="cqa-card-h"><h3>Распределение баллов</h3></div>
           <div class="cqa-card-b"><div class="cqa-bars">
@@ -52,7 +52,7 @@ export async function mount(el, ctx, _params, top) {
           </div>
         </div>
       </div>
-    </div>`;
+    </div></div>`;
   el.onclick = (e) => {
     const r = e.target.closest("[data-crit]");
     if (r) ctx.nav(`#/dialogs?crit=${encodeURIComponent(r.dataset.crit)}`);
