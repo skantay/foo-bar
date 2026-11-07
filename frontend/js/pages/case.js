@@ -18,8 +18,7 @@ export async function mount(el, ctx, [id], top) {
   top.querySelector("[data-prev]").onclick = () => go(prev);
   top.querySelector("[data-next]").onclick = () => go(next);
 
-  el.innerHTML = `<cqa-case dialog-id="${esc(id)}"></cqa-case>
-    <div class="cqa-faint" style="margin-top:14px;font-size:12px">Клавиши: <span class="cqa-kbd">←</span> <span class="cqa-kbd">→</span> соседние диалоги · <span class="cqa-kbd">Esc</span> к списку</div>`;
+  el.innerHTML = `<cqa-case dialog-id="${esc(id)}"></cqa-case>`;
 
   const onKey = (e) => {
     if (e.target.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;

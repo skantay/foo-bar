@@ -44,6 +44,15 @@ app = FastAPI(title="CQA API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
+@app.middleware("http")
+async def no_stale_frontend(request, call_next):
+    """Интерфейс без сборки: браузер должен перепроверять файлы, иначе после обновления видны старые модули."""
+    resp = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
 # ---------- данные ----------
 
 SPEAKER_ALIAS = {"оператор": "operator", "agent": "operator", "клиент": "client", "customer": "client",

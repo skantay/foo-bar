@@ -405,3 +405,401 @@ cqa-app .cqa-toolbar .cqa-select { max-width: 230px; }
 .cqa-vrow { display: flex; padding: 5px 14px 5px 26px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
 .cqa-vrow:hover { color: var(--text); }
 .cqa-vrow.on { color: var(--brand-2); font-weight: 700; }
+
+/* =====================================================================
+   Эстетика v2: тот же макет, аккуратнее типографика, ритм и детали
+   ===================================================================== */
+cqa-app {
+  --bg: #f5f7f6;
+  --surface-2: #f9fbfa;
+  --line: #e6ebe9;
+  --line-2: #f0f3f2;
+  --text: #121a17;
+  --muted: #5b6863;
+  --faint: #95a19c;
+  --brand: #0c3528;
+  --brand-2: #12694a;
+  --accent: #19a06a;
+  --accent-soft: #e6f6ee;
+  --shadow: 0 1px 1px rgba(14, 40, 30, .03), 0 2px 6px rgba(14, 40, 30, .04);
+  --shadow-hover: 0 2px 4px rgba(14, 40, 30, .05), 0 10px 24px rgba(14, 40, 30, .07);
+  --radius: 14px;
+  font-size: 14px;
+  letter-spacing: -.006em;
+  font-feature-settings: "cv11", "ss01", "tnum" 0;
+}
+cqa-app ::selection { background: #cdeedd; }
+
+/* меню слева */
+cqa-app .cqa-side {
+  background: linear-gradient(180deg, #0f3f2f 0%, #0b3125 100%);
+  padding: 20px 14px;
+  border-right: 1px solid rgba(255, 255, 255, .04);
+}
+cqa-app .cqa-logo { padding: 2px 8px 26px; }
+cqa-app .cqa-logo-mark { width: 36px; height: 36px; border-radius: 11px; box-shadow: 0 4px 14px rgba(61, 220, 151, .25), inset 0 1px 0 rgba(255,255,255,.35); }
+cqa-app .cqa-logo b { font-size: 15.5px; letter-spacing: -.2px; }
+cqa-app .cqa-nav { display: flex; flex-direction: column; gap: 2px; }
+cqa-app .cqa-nav a { position: relative; padding: 10px 12px; border-radius: 10px; font-size: 14px; color: #a9cbbb; transition: background .15s, color .15s; }
+cqa-app .cqa-nav a svg { opacity: .75; }
+cqa-app .cqa-nav a:hover { background: rgba(255, 255, 255, .05); color: #fff; }
+cqa-app .cqa-nav a.on { background: rgba(255, 255, 255, .09); color: #fff; font-weight: 600; }
+cqa-app .cqa-nav a.on svg { opacity: 1; color: #5fe3a8; }
+cqa-app .cqa-nav a.on::before { content: ""; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: #5fe3a8; }
+cqa-app .cqa-side-foot { margin: 0 -2px; padding: 14px 12px 4px; font-size: 12px; line-height: 1.55; color: #7fa897; border-top: 1px solid rgba(255, 255, 255, .07); }
+cqa-app .cqa-side-job { background: rgba(95, 227, 168, .1); border: 1px solid rgba(95, 227, 168, .18); }
+
+/* шапка страницы */
+cqa-app .cqa-top { padding: 18px 32px 16px; background: rgba(245, 247, 246, .82); border-bottom-color: transparent; box-shadow: 0 1px 0 var(--line); }
+cqa-app .cqa-top h1 { font-size: 21px; font-weight: 700; letter-spacing: -.4px; }
+cqa-app .cqa-top .cqa-sub { margin-top: 2px; font-size: 13px; }
+cqa-app .cqa-page { padding: 24px 32px 64px; }
+
+/* карточки */
+cqa-app .cqa-card { border-color: var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+cqa-app .cqa-card-h { padding: 16px 20px; border-bottom-color: var(--line-2); }
+cqa-app .cqa-card-h h3 { font-size: 14.5px; font-weight: 650; letter-spacing: -.1px; }
+cqa-app .cqa-card-b { padding: 18px 20px; }
+
+/* кнопки и поля */
+cqa-app .cqa-btn { height: 36px; padding: 0 15px; border-radius: 10px; border-color: var(--line); font-weight: 600; box-shadow: 0 1px 1px rgba(14, 40, 30, .03); transition: background .15s, border-color .15s, box-shadow .15s, transform .05s; }
+cqa-app .cqa-btn:hover { border-color: #d3dcd8; background: #fff; box-shadow: var(--shadow-hover); }
+cqa-app .cqa-btn.primary { background: linear-gradient(180deg, #17784f 0%, #12694a 100%); border-color: #0f5f42; box-shadow: 0 1px 2px rgba(12, 53, 40, .2), inset 0 1px 0 rgba(255, 255, 255, .12); }
+cqa-app .cqa-btn.primary:hover { background: linear-gradient(180deg, #158457 0%, #106145 100%); }
+cqa-app .cqa-btn.ghost { box-shadow: none; }
+cqa-app .cqa-btn.sm { height: 30px; border-radius: 8px; }
+cqa-app .cqa-btn:focus-visible, cqa-app .cqa-input:focus, cqa-app .cqa-select:focus, cqa-app .cqa-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(25, 160, 106, .16); }
+cqa-app .cqa-input, cqa-app .cqa-select { height: 36px; border-radius: 10px; border-color: var(--line); background: #fff; transition: border-color .15s, box-shadow .15s; }
+cqa-app .cqa-textarea { border-radius: 10px; border-color: var(--line); }
+
+/* чипы и балл */
+cqa-app .cqa-chip { height: 22px; padding: 0 9px; font-weight: 600; letter-spacing: 0; }
+cqa-app .cqa-score { min-width: 54px; height: 28px; border-radius: 8px; font-size: 13.5px; letter-spacing: -.2px; }
+cqa-app .cqa-lang { border-radius: 6px; padding: 2px 7px; }
+
+/* таблица диалогов */
+cqa-app .cqa-toolbar { padding: 14px 16px; gap: 10px; }
+cqa-app .cqa-table th { background: #fbfcfc; color: var(--faint); font-size: 11px; letter-spacing: .5px; padding: 11px 16px; border-bottom-color: var(--line); }
+cqa-app .cqa-table td { padding: 13px 16px; border-bottom-color: var(--line-2); }
+cqa-app .cqa-table tbody tr { transition: background .12s; }
+cqa-app .cqa-table tbody tr:hover { background: #f4faf7; }
+cqa-app .cqa-table tbody tr:last-child td { border-bottom: 0; }
+cqa-app .cqa-dot { border-radius: 2px; width: 9px; height: 9px; }
+
+/* KPI */
+cqa-app .cqa-kpis { gap: 16px; }
+cqa-app .cqa-kpi { padding: 18px 20px; transition: box-shadow .2s, transform .2s; }
+cqa-app .cqa-kpi:hover { box-shadow: var(--shadow-hover); }
+cqa-app .cqa-kpi .k { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+cqa-app .cqa-kpi .v { font-size: 30px; font-weight: 750; letter-spacing: -.8px; margin-top: 6px; }
+cqa-app .cqa-stack { height: 8px; border-radius: 5px; gap: 2px; background: transparent; }
+cqa-app .cqa-stack i { border-radius: 3px; }
+cqa-app .cqa-bars .b i { border-radius: 6px 6px 3px 3px; opacity: .9; }
+
+/* переписка */
+cqa-app .cqa-transcript .cqa-card-b { padding: 16px; gap: 10px; background: linear-gradient(180deg, #fbfcfc, #fff 40%); }
+cqa-app .cqa-turn .bubble { border-radius: 14px; padding: 9px 13px; box-shadow: 0 1px 1px rgba(14, 40, 30, .03); }
+cqa-app .cqa-turn.client .bubble { background: #fff; border-color: var(--line); border-top-left-radius: 6px; }
+cqa-app .cqa-turn.operator .bubble { background: #ecf8f2; border-color: #d4eedf; border-top-right-radius: 6px; }
+cqa-app .cqa-turn.bot .bubble { background: #f6f5fb; border-color: #ebe8f5; border-top-left-radius: 6px; }
+cqa-app .cqa-turn .who { font-size: 10.5px; letter-spacing: .5px; margin-bottom: 2px; }
+cqa-app .cqa-turn .txt { line-height: 1.5; }
+cqa-app .cqa-turn.ev .bubble { box-shadow: 0 0 0 2px #f2b84b, 0 4px 14px rgba(245, 166, 35, .18); }
+
+/* карточка оценки */
+cqa-app .cqa-gauge .val b { font-weight: 750; letter-spacing: -1.4px; }
+cqa-app .cqa-sec { border-radius: 10px; background: #fbfcfc; }
+cqa-app .cqa-sc td { padding: 9px 10px; }
+cqa-app .cqa-sc tr:hover td { background: #f4faf7; }
+cqa-app .cqa-crit { border-radius: 14px; border-color: var(--line); box-shadow: var(--shadow); transition: box-shadow .2s, border-color .2s; }
+cqa-app .cqa-crit:hover { box-shadow: var(--shadow-hover); }
+cqa-app .cqa-crit + .cqa-crit { margin-top: 12px; }
+cqa-app .cqa-crit-h { padding: 14px 16px; }
+cqa-app .cqa-crit-h .num { border-radius: 9px; background: var(--accent-soft); color: var(--brand-2); }
+cqa-app .cqa-crit-h .ttl { font-size: 14.5px; }
+cqa-app .cqa-ev { border-radius: 10px; background: #fbfcfc; }
+cqa-app .cqa-alert { border-radius: 12px; }
+
+/* модальные окна и тосты */
+cqa-app .cqa-modal-bg { background: rgba(9, 24, 18, .38); backdrop-filter: blur(3px); }
+cqa-app .cqa-modal { border-radius: 18px; box-shadow: 0 24px 64px rgba(9, 24, 18, .28); animation: cqa-pop .16s ease-out; }
+@keyframes cqa-pop { from { transform: translateY(6px) scale(.985); opacity: 0; } }
+cqa-app .cqa-toast { border-radius: 12px; background: #0f3f2f; box-shadow: 0 10px 30px rgba(9, 24, 18, .25); }
+
+/* апелляции, чек-листы, точность */
+cqa-app .cqa-ap-item, cqa-app .cqa-ver { transition: background .12s; }
+cqa-app .cqa-ed-crit { border-radius: 14px; box-shadow: var(--shadow); }
+cqa-app .cqa-savebar { border-radius: 14px; }
+cqa-app .cqa-add { border-radius: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  cqa-app *, cqa-app *::before, cqa-app *::after { animation: none !important; transition: none !important; }
+}
+
+/* =====================================================================
+   Палитра 60/30/10: белый · зелёный Freedom · тёплое золото (декоративный акцент)
+   Плавность: анимации наведения на кнопках, строках и карточках
+   ===================================================================== */
+cqa-app {
+  --gold: #d9a441;
+  --gold-2: #f0c766;
+  --gold-soft: #fbf4e3;
+  --bg: #f2f7f4;               /* лёгкий зелёный оттенок фона вместо серого */
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ---- 10%: золото — только акценты, не статусы ---- */
+cqa-app .cqa-logo-mark { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #0c3528; box-shadow: 0 4px 16px rgba(217, 164, 65, .35), inset 0 1px 0 rgba(255, 255, 255, .45); }
+cqa-app .cqa-logo small { color: #d8c18e; }
+cqa-app .cqa-nav a.on::before { background: linear-gradient(180deg, var(--gold-2), var(--gold)); box-shadow: 0 0 12px rgba(240, 199, 102, .55); }
+cqa-app .cqa-nav a.on svg { color: var(--gold-2); }
+cqa-app .cqa-badge-n { background: var(--gold); color: #0c3528; }
+cqa-app .cqa-side-foot b { color: #f3dca4; }
+cqa-app .cqa-top h1 { position: relative; }
+cqa-app .cqa-top h1::after { content: ""; display: block; width: 28px; height: 3px; margin-top: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--gold), var(--gold-2)); }
+cqa-app .cqa-kpi { position: relative; overflow: hidden; }
+cqa-app .cqa-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--gold-2), var(--gold)); opacity: 0; transition: opacity .25s var(--ease); }
+cqa-app .cqa-kpi:hover::before { opacity: 1; }
+cqa-app .cqa-card-h h3::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); margin-right: 8px; vertical-align: 2px; }
+cqa-app .cqa-crit-h .num { background: var(--gold-soft); color: #8a6420; }
+cqa-app .cqa-crit.active { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(217, 164, 65, .18); }
+cqa-app ::selection { background: #f6e3b4; }
+
+/* ---- 30%: зелёный ---- */
+cqa-app .cqa-table th { background: #f3f9f6; }
+cqa-app .cqa-tabs button.on, cqa-app .cqa-seg button.on:not(.yes):not(.no):not(.part):not(.na) { background: var(--brand-2); color: #fff; }
+cqa-app .cqa-chip.brand { background: #dff2e8; color: var(--brand-2); }
+
+/* ---- плавность: кнопки ---- */
+cqa-app .cqa-btn {
+  position: relative; overflow: hidden; isolation: isolate;
+  transition: transform .22s var(--spring), box-shadow .22s var(--ease), background .22s var(--ease), border-color .22s var(--ease), color .22s var(--ease);
+}
+cqa-app .cqa-btn svg { transition: transform .25s var(--spring); }
+cqa-app .cqa-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(14, 40, 30, .1), 0 1px 2px rgba(14, 40, 30, .06); }
+cqa-app .cqa-btn:not(:disabled):hover svg { transform: translateX(1px) scale(1.08); }
+cqa-app .cqa-btn:not(:disabled):active { transform: translateY(0) scale(.97); box-shadow: 0 1px 2px rgba(14, 40, 30, .08); transition-duration: .08s; }
+cqa-app .cqa-btn.ghost:not(:disabled):hover { box-shadow: none; background: rgba(18, 105, 74, .07); }
+/* блик по главной кнопке при наведении */
+cqa-app .cqa-btn.primary::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .28) 50%, transparent 70%);
+  transform: translateX(-120%); transition: transform .7s var(--ease);
+}
+cqa-app .cqa-btn.primary:not(:disabled):hover::after { transform: translateX(120%); }
+cqa-app .cqa-btn.primary:not(:disabled):hover { box-shadow: 0 8px 22px rgba(18, 105, 74, .32), 0 0 0 1px rgba(217, 164, 65, .35); }
+cqa-app .cqa-btn:disabled { transform: none; }
+
+/* ---- плавность: меню, строки, карточки, чипы ---- */
+cqa-app .cqa-nav a { transition: background .2s var(--ease), color .2s var(--ease), padding-left .25s var(--spring); }
+cqa-app .cqa-nav a:not(.on):hover { padding-left: 16px; }
+cqa-app .cqa-table tbody tr { transition: background .18s var(--ease), box-shadow .18s var(--ease); }
+cqa-app .cqa-table tbody tr:hover { background: #f1f8f4; box-shadow: inset 3px 0 0 var(--gold); }
+cqa-app .cqa-card, cqa-app .cqa-crit, cqa-app .cqa-kpi, cqa-app .cqa-ed-crit { transition: box-shadow .25s var(--ease), transform .25s var(--ease), border-color .25s var(--ease); }
+cqa-app .cqa-kpi:hover { transform: translateY(-2px); }
+cqa-app .cqa-sc tr td { transition: background .15s var(--ease); }
+cqa-app .cqa-ev, cqa-app .cqa-ap-item, cqa-app .cqa-ver, cqa-app .cqa-vrow, cqa-app .cqa-tpls button { transition: background .18s var(--ease), border-color .18s var(--ease), transform .2s var(--spring); }
+cqa-app .cqa-ev:hover, cqa-app .cqa-tpls button:hover { transform: translateX(2px); border-color: var(--gold); }
+cqa-app .cqa-ref { transition: background .15s var(--ease), color .15s var(--ease), transform .15s var(--spring); }
+cqa-app .cqa-ref:hover { transform: translateY(-1px); background: var(--gold); color: #fff; }
+cqa-app .cqa-chip { transition: transform .2s var(--spring); }
+cqa-app .cqa-input, cqa-app .cqa-select, cqa-app .cqa-textarea { transition: border-color .2s var(--ease), box-shadow .2s var(--ease), background .2s var(--ease); }
+cqa-app .cqa-input:hover, cqa-app .cqa-select:hover, cqa-app .cqa-textarea:hover { border-color: #cfdcd5; }
+cqa-app .cqa-switch i, cqa-app .cqa-switch i::after { transition: background .25s var(--ease), left .25s var(--spring); }
+
+/* ---- плавное появление страницы ---- */
+cqa-app .cqa-page > * { animation: cqa-in .32s var(--ease) both; }
+cqa-app .cqa-page > *:nth-child(2) { animation-delay: .04s; }
+cqa-app .cqa-page > *:nth-child(3) { animation-delay: .08s; }
+@keyframes cqa-in { from { opacity: 0; transform: translateY(6px); } }
+cqa-app .cqa-turn.flash { animation: cqa-flash-gold 1.6s var(--ease); }
+@keyframes cqa-flash-gold { 0%, 40% { background: rgba(217, 164, 65, .22); } 100% { background: transparent; } }
+
+@media (prefers-reduced-motion: reduce) {
+  cqa-app *, cqa-app *::before, cqa-app *::after { animation: none !important; transition: none !important; }
+}
+
+/* =====================================================================
+   Тема хакатона: железная маска в капюшоне — сдержанно, только в меню и логотипе
+   ===================================================================== */
+cqa-app { --steel: #aab6b2; --steel-2: #6f7d78; }
+cqa-app .cqa-side { position: relative; overflow: hidden; box-shadow: inset -1px 0 0 rgba(170, 182, 178, .18); }
+cqa-app .cqa-side > *:not(.cqa-sigil) { position: relative; z-index: 1; }
+/* водяной знак: крупный силуэт внизу меню, почти незаметный */
+cqa-app .cqa-sigil { position: absolute; left: 50%; bottom: 54px; width: 230px; transform: translateX(-50%); color: #d7e4df; opacity: .07; pointer-events: none; z-index: 0;
+  -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%); mask-image: linear-gradient(180deg, #000 55%, transparent 100%); }
+cqa-app .cqa-sigil svg { display: block; width: 100%; height: auto; }
+/* эмблема в логотипе: стальная маска на золоте */
+cqa-app .cqa-logo-mark { padding: 3px 4px 0; overflow: hidden; color: #24312c; background: linear-gradient(140deg, var(--gold-2) 0%, var(--gold) 55%, #b8862e 100%); }
+cqa-app .cqa-logo-mark svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, .35)); }
+cqa-app .cqa-logo:hover .cqa-logo-mark { box-shadow: 0 6px 20px rgba(217, 164, 65, .45), inset 0 1px 0 rgba(255, 255, 255, .5); }
+/* стальная тонкая линия под логотипом */
+cqa-app .cqa-logo { margin-bottom: 14px; border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, transparent, rgba(170, 182, 178, .35), transparent) 1; }
+
+/* ---- белая часть: кованая решётка, мягкое свечение и бледный силуэт за карточками ---- */
+cqa-app .cqa-main {
+  position: relative;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1200px 420px at 78% -8%, rgba(25, 160, 106, .10), transparent 62%),
+    radial-gradient(900px 500px at -10% 110%, rgba(217, 164, 65, .07), transparent 60%);
+  background-attachment: local, local;
+}
+cqa-app .cqa-bgsigil { position: sticky; top: calc(100vh - 470px); height: 0; z-index: 0; pointer-events: none; }
+cqa-app .cqa-bgsigil svg { position: absolute; right: 24px; top: 20px; width: 520px; height: auto; color: var(--brand); opacity: .05;
+  -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent 98%); mask-image: linear-gradient(180deg, #000 50%, transparent 98%); }
+cqa-app .cqa-top, cqa-app .cqa-page { position: relative; z-index: 1; }
+cqa-app .cqa-top { background: rgba(242, 247, 244, .72); backdrop-filter: blur(10px) saturate(1.2); }
+/* карточки — чистый белый поверх фактуры */
+cqa-app .cqa-card, cqa-app .cqa-crit, cqa-app .cqa-ed-crit { background: #fff; }
+
+/* ---- меню: фигура в полный рост «фармит ауру» ---- */
+cqa-app .cqa-hero { position: absolute; left: 0; right: 0; bottom: 92px; height: min(48vh, 430px); pointer-events: none; z-index: 0; }
+cqa-app .cqa-hero-fig { position: absolute; left: 50%; bottom: 0; height: 100%; transform: translateX(-50%); color: #d7e4df; opacity: .17;
+  -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent 100%); mask-image: linear-gradient(180deg, #000 70%, transparent 100%); }
+cqa-app .cqa-hero-fig svg { height: 100%; width: auto; display: block; }
+cqa-app .cqa-aura { position: absolute; left: 50%; bottom: 6%; width: 230px; height: 88%; transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(95, 227, 168, .34), rgba(95, 227, 168, .12) 55%, transparent 100%);
+  filter: blur(6px); border-radius: 50%; animation: cqa-aura 4.5s ease-in-out infinite; }
+@keyframes cqa-aura { 0%, 100% { opacity: .55; transform: translateX(-50%) scale(.94); } 50% { opacity: 1; transform: translateX(-50%) scale(1.06); } }
+cqa-app .cqa-spark { position: absolute; bottom: 8%; left: calc(32% + var(--i) * 6%); width: 3px; height: 3px; border-radius: 50%;
+  background: #8ff0c3; box-shadow: 0 0 6px 2px rgba(95, 227, 168, .55); opacity: 0;
+  animation: cqa-spark 6s linear infinite; animation-delay: calc(var(--i) * -0.86s); }
+@keyframes cqa-spark { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .9; } 80% { opacity: .5; } 100% { transform: translateY(-300px) translateX(6px); opacity: 0; } }
+cqa-app .cqa-side > *:not(.cqa-hero):not(.cqa-sigil) { position: relative; z-index: 1; }
+@media (max-height: 700px) { cqa-app .cqa-hero { display: none; } }
+cqa-app .cqa-side > .cqa-hero { position: absolute; z-index: 0; }
+/* трон — по центру рабочей области и чуть явнее */
+cqa-app .cqa-bgsigil { top: calc(100vh - 560px); }
+cqa-app .cqa-bgsigil svg { left: 50%; right: auto; top: 0; width: 620px; transform: translateX(-50%); opacity: .075;
+  -webkit-mask-image: linear-gradient(180deg, #000 62%, transparent 100%); mask-image: linear-gradient(180deg, #000 62%, transparent 100%); }
+cqa-app .cqa-hero-fig { opacity: .2; }
+
+/* ---- меню: сцена «плащ среди гигантов» под солнечным заревом ---- */
+cqa-app .cqa-hero { height: 400px; bottom: 96px; }
+cqa-app .cqa-hero-fig { left: 0; right: 0; width: 100%; height: auto; bottom: 0; transform: none; color: #dce9e3; opacity: .42;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 18%, #000 78%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 18%, #000 78%, transparent 100%); }
+cqa-app .cqa-hero-fig svg { width: 100%; height: auto; }
+cqa-app .cqa-sun { position: absolute; left: 50%; top: 32%; width: 250px; height: 250px; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(244, 206, 116, .42), rgba(217, 164, 65, .16) 55%, transparent 100%);
+  animation: cqa-sun 7s ease-in-out infinite; }
+@keyframes cqa-sun { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+cqa-app .cqa-aura { bottom: 4%; width: 190px; height: 56%; }
+
+/* ---- плавный переход зелёного меню в светлую рабочую область ---- */
+cqa-app .cqa-side { background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .12) 100%), linear-gradient(90deg, #0b3125 0%, #0f3f2f 62%, #165a42 100%); box-shadow: none; }
+cqa-app .cqa-fade { position: sticky; top: 0; height: 0; z-index: 0; pointer-events: none; }
+cqa-app .cqa-fade::before { content: ""; position: absolute; left: 0; top: 0; width: 220px; height: 100vh;
+  background: linear-gradient(90deg, rgba(22, 90, 66, .20) 0%, rgba(22, 90, 66, .08) 40%, rgba(22, 90, 66, 0) 100%); }
+cqa-app .cqa-fade::before { width: 280px;
+  background: linear-gradient(90deg, rgba(22, 90, 66, .55) 0%, rgba(22, 90, 66, .26) 22%, rgba(22, 90, 66, .09) 55%, rgba(22, 90, 66, 0) 100%); }
+cqa-app .cqa-top { background: linear-gradient(90deg, rgba(22, 90, 66, .18), rgba(242, 247, 244, .75) 280px); }
+
+/* =====================================================================
+   Сцена в меню — фото-референс в тритоне палитры; сквозной переход зелёного в светлое
+   ===================================================================== */
+cqa-app .cqa-side > .cqa-hero { top: 300px; bottom: 90px; height: auto; }
+cqa-app .cqa-hero-img { position: absolute; inset: 0; background: url("/static/img/hero.jpg") center 30% / cover no-repeat; opacity: .62;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 72%, transparent 100%), linear-gradient(90deg, #000 70%, transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 72%, transparent 100%), linear-gradient(90deg, #000 70%, transparent 100%); mask-composite: intersect; }
+cqa-app .cqa-spark { bottom: 30%; left: calc(38% + var(--i) * 4%); }
+
+/* один градиент через меню и начало рабочей области — без кромки */
+cqa-app .cqa-shell { background:
+  linear-gradient(90deg, #0a2f23 0px, #0e3c2d 120px, #155a43 175px, #3f8068 205px, #93bcaa 232px, #cfe3d9 270px, #e8f1ec 330px, #f2f7f4 440px); }
+cqa-app .cqa-side { background: linear-gradient(180deg, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, .14) 100%); box-shadow: none; border-right: 0; }
+cqa-app .cqa-main { background-color: transparent; }
+cqa-app .cqa-top { background: transparent; box-shadow: none; backdrop-filter: none; border-bottom: 1px solid rgba(12, 53, 40, .06); }
+cqa-app .cqa-side-foot { padding-right: 34px; border-top-color: rgba(255, 255, 255, .06); }
+cqa-app .cqa-nav a.on { background: rgba(255, 255, 255, .08); }
+cqa-app .cqa-side > .cqa-hero { top: auto; bottom: 92px; height: 360px; }
+cqa-app .cqa-hero-img { background-size: 100% auto; background-position: center 38%; opacity: .78;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 76%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 76%, transparent 100%); -webkit-mask-composite: source-over; mask-composite: add; }
+@media (max-height: 760px) { cqa-app .cqa-side > .cqa-hero { height: 260px; } }
+cqa-app .cqa-hero-img { inset: 0 6px; opacity: .85;
+  -webkit-mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, #000 52%, rgba(0, 0, 0, .55) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, #000 52%, rgba(0, 0, 0, .55) 72%, transparent 100%);
+  -webkit-mask-composite: initial; mask-composite: initial; }
+cqa-app .cqa-shell { background: linear-gradient(90deg,
+  #0a2f23 0px, #0d3a2b 120px, #12493a 160px, #1d5f48 192px, #3a7d63 216px, #6a9f88 236px, #98bfae 252px,
+  #bcd6ca 272px, #d6e7de 300px, #e6f0eb 340px, #eef5f1 400px, #f2f7f4 480px); }
+cqa-app .cqa-nav a.on { background: rgba(255, 255, 255, .1); margin-right: 8px; }
+cqa-app .cqa-nav a:hover { margin-right: 8px; }
+cqa-app .cqa-side { background: none !important; box-shadow: none !important; border: 0 !important; }
+
+/* ---- без градиентного перехода: ровная граница меню и светлого фона ---- */
+cqa-app .cqa-shell { background: var(--bg); }
+cqa-app .cqa-side { background: linear-gradient(180deg, #0f3f2f 0%, #0b3125 100%) !important; }
+cqa-app .cqa-main { background-color: var(--bg); overflow-x: hidden; }
+cqa-app .cqa-top { background: rgba(242, 247, 244, .82); backdrop-filter: blur(10px); }
+cqa-app .cqa-nav a.on, cqa-app .cqa-nav a:hover { margin-right: 0; }
+
+/* ---- сцена в меню вплавлена в фон: тени исчезают, остаётся свет ---- */
+cqa-app .cqa-hero-img { inset: 0; opacity: 1; mix-blend-mode: screen; background-size: 100% auto;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 80%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 80%, transparent 100%); }
+
+/* ---- щит Freedom: светло-серый водяной знак справа, под 45°, частично за краем ---- */
+cqa-app .cqa-brandmark { position: sticky; top: 0; height: 0; z-index: 0; pointer-events: none; }
+cqa-app .cqa-brandmark svg { position: absolute; right: calc(-18vh); top: 16vh; height: 82vh; width: auto; transform: rotate(45deg); transform-origin: 50% 50%; }
+cqa-app .cqa-brandmark .d { fill: #e3e8e6; }
+cqa-app .cqa-brandmark .l { fill: #ebefed; }
+/* смешивание с фоном меню: у контейнера не должно быть собственного слоя */
+cqa-app .cqa-side > .cqa-hero { z-index: auto; isolation: auto; }
+cqa-app .cqa-hero-img { mix-blend-mode: screen; z-index: 0;
+  -webkit-mask-image: radial-gradient(ellipse 62% 56% at 50% 50%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(ellipse 62% 56% at 50% 50%, #000 55%, transparent 100%); }
+cqa-app .cqa-hero-img {
+  -webkit-mask-image: radial-gradient(ellipse 50% 47% at 50% 54%, #000 38%, rgba(0, 0, 0, .6) 66%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 47% at 50% 54%, #000 38%, rgba(0, 0, 0, .6) 66%, transparent 100%); }
+
+/* ---- меню: силуэт фигуры с фото (без фона) от «Точности» до нижнего блока ---- */
+cqa-app .cqa-side > .cqa-hero { top: 312px; bottom: 92px; height: auto; z-index: auto; }
+cqa-app .cqa-hero-img { display: none; }
+cqa-app .cqa-hero-fig2 { position: absolute; left: 50%; bottom: 0; height: 100%; width: auto; max-width: 96%; object-fit: contain; object-position: bottom;
+  transform: translateX(-50%); opacity: .5; z-index: 0;
+  -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent 100%); mask-image: linear-gradient(180deg, #000 82%, transparent 100%); }
+cqa-app .cqa-sun { top: 14%; width: 240px; height: 240px; z-index: 0; }
+cqa-app .cqa-aura { bottom: 6%; width: 200px; height: 72%; z-index: 0; }
+cqa-app .cqa-spark { bottom: 18%; left: calc(30% + var(--i) * 6%); z-index: 1; }
+@media (max-height: 760px) { cqa-app .cqa-side > .cqa-hero { top: 300px; } }
+
+/* ---- щит: поворот на 45° влево и на 15% крупнее ---- */
+cqa-app .cqa-brandmark svg { height: 94vh; right: -22vh; top: 10vh; transform: rotate(-45deg); }
+cqa-app .cqa-hero-fig2 { top: 4px; bottom: auto; width: 114%; max-width: none; height: auto; max-height: 100%; object-position: top; }
+cqa-app .cqa-sun { top: 10%; }
+
+/* ---- снова сцена с фото (детализация), выше и на всю свободную высоту меню ---- */
+cqa-app .cqa-side > .cqa-hero { top: 300px; bottom: 88px; height: auto; }
+cqa-app .cqa-hero-img { display: block; inset: 0; opacity: 1; mix-blend-mode: screen; z-index: 0;
+  background: url("/static/img/hero.jpg") 48% 40% / auto 108% no-repeat;
+  -webkit-mask-image: radial-gradient(ellipse 58% 54% at 50% 50%, #000 50%, rgba(0, 0, 0, .6) 74%, transparent 100%);
+  mask-image: radial-gradient(ellipse 58% 54% at 50% 50%, #000 50%, rgba(0, 0, 0, .6) 74%, transparent 100%); }
+cqa-app .cqa-aura { opacity: .5; }
+cqa-app .cqa-spark { bottom: 22%; }
+
+/* ---- щит: поворот на 30° влево ---- */
+cqa-app .cqa-brandmark svg { transform: rotate(-30deg); }
+/* верх сцены растворяется полностью — без заметной кромки под «Точностью» */
+cqa-app .cqa-hero-img {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .15) 10%, rgba(0, 0, 0, .55) 22%, #000 36%, #000 82%, transparent 100%),
+                      radial-gradient(ellipse 62% 70% at 50% 56%, #000 55%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, .15) 10%, rgba(0, 0, 0, .55) 22%, #000 36%, #000 82%, transparent 100%),
+              radial-gradient(ellipse 62% 70% at 50% 56%, #000 55%, transparent 100%);
+  mask-composite: intersect; }
+
+/* ---- искры: хаотичный дрейф и мерцание (параметры у каждой свои, задаются в app.js) ---- */
+cqa-app .cqa-spark { left: var(--x); bottom: var(--y); width: var(--s); height: var(--s); opacity: 0;
+  animation: cqa-drift var(--d) cubic-bezier(.45, .05, .55, .95) var(--delay) infinite, cqa-twinkle var(--t) ease-in-out var(--delay) infinite alternate; }
+@keyframes cqa-drift {
+  0%   { transform: translate(0, 0) scale(.5); opacity: 0; }
+  12%  { opacity: var(--o); }
+  35%  { transform: translate(var(--dx1), calc(var(--h) * -.3)) scale(.9); }
+  62%  { transform: translate(var(--dx2), calc(var(--h) * -.62)) scale(1); }
+  85%  { opacity: calc(var(--o) * .55); }
+  100% { transform: translate(var(--dx3), calc(var(--h) * -1)) scale(.35); opacity: 0; }
+}
+@keyframes cqa-twinkle { from { filter: brightness(.7); } to { filter: brightness(1.6); } }
+

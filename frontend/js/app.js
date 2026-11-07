@@ -1,6 +1,6 @@
 // <cqa-app api-base="..."> — корневой компонент админки: каркас, навигация, роутинг по hash.
 import { Api } from "./api.js";
-import { esc, icon, toast } from "./ui.js";
+import { BRAND_MARK, esc, icon, SIGIL, toast } from "./ui.js";
 import "./components/cqa-case.js";
 import * as dashboard from "./pages/dashboard.js";
 import * as dialogs from "./pages/dialogs.js";
@@ -17,6 +17,14 @@ const ROUTES = [
   { re: /^#\/accuracy\/?$/, page: accuracyPage, nav: "accuracy" },
   { re: /^#\/?$/, page: dashboard, nav: "dash" },
 ];
+
+// Искры вокруг фигуры: у каждой свои место, размер, скорость и извилистая траектория — без общего ритма
+const rnd = (a, b) => a + Math.random() * (b - a);
+const sparks = (n) => Array.from({ length: n }, () => {
+  const v = { x: rnd(14, 86), y: rnd(6, 60), s: rnd(1.6, 4), o: rnd(.45, 1), d: rnd(5, 11), delay: -rnd(0, 11), t: rnd(.8, 2.4),
+    h: rnd(140, 320), dx1: rnd(-26, 26), dx2: rnd(-34, 34), dx3: rnd(-40, 40) };
+  return `<i class="cqa-spark" style="--x:${v.x.toFixed(1)}%;--y:${v.y.toFixed(1)}%;--s:${v.s.toFixed(1)}px;--o:${v.o.toFixed(2)};--d:${v.d.toFixed(1)}s;--delay:${v.delay.toFixed(1)}s;--t:${v.t.toFixed(1)}s;--h:${v.h.toFixed(0)}px;--dx1:${v.dx1.toFixed(0)}px;--dx2:${v.dx2.toFixed(0)}px;--dx3:${v.dx3.toFixed(0)}px"></i>`;
+}).join("");
 
 class CqaApp extends HTMLElement {
   connectedCallback() {
@@ -35,7 +43,8 @@ class CqaApp extends HTMLElement {
     };
     this.innerHTML = `<div class="cqa-shell">
       <aside class="cqa-side">
-        <div class="cqa-logo"><div class="cqa-logo-mark">CQ</div><div><b>Quality Analytics</b><small>Freedom Broker · QC</small></div></div>
+        <div class="cqa-hero" aria-hidden="true"><div class="cqa-hero-img"></div><div class="cqa-aura"></div>${sparks(16)}</div>
+        <div class="cqa-logo"><div class="cqa-logo-mark">${SIGIL}</div><div><b>Quality Analytics</b><small>Freedom Broker · QC</small></div></div>
         <nav class="cqa-nav">
           <a href="#/" data-nav="dash">${icon.dash} Обзор</a>
           <a href="#/dialogs" data-nav="dialogs">${icon.chat} Диалоги</a>
@@ -48,6 +57,7 @@ class CqaApp extends HTMLElement {
         <div class="cqa-side-foot" data-foot style="margin-top:0">…</div>
       </aside>
       <main class="cqa-main">
+        <div class="cqa-brandmark" aria-hidden="true">${BRAND_MARK}</div>
         <header class="cqa-top"><div><h1></h1><div class="cqa-sub"></div></div><div class="cqa-top-right" data-top></div></header>
         <div class="cqa-page" data-page></div>
       </main>
