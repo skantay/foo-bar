@@ -12,16 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-import db
-import evaluator
-import scoring
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-log = logging.getLogger("cqa")
-
 ROOT = Path(__file__).resolve().parent.parent
-FRONTEND = ROOT / "frontend"
-CONCURRENCY = int(os.getenv("CQA_CONCURRENCY", "8"))
 
 
 def load_env(path: Path) -> None:
@@ -33,7 +24,18 @@ def load_env(path: Path) -> None:
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
+# .env читается до импорта модулей: evaluator берёт CQA_MODEL, CQA_SAMPLES и др. при импорте
 load_env(ROOT / ".env")
+
+import db  # noqa: E402
+import evaluator  # noqa: E402
+import scoring  # noqa: E402
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+log = logging.getLogger("cqa")
+
+FRONTEND = ROOT / "frontend"
+CONCURRENCY = int(os.getenv("CQA_CONCURRENCY", "8"))
 # Адрес API организаторов с подписью — секрет, хранится только в .env (см. .env.example)
 SOURCE_URL = os.getenv("CQA_SOURCE_URL", "")
 
