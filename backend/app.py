@@ -667,7 +667,10 @@ def validate_results(doc: dict, expected_ids: list[str]) -> list[str]:
             continue
         codes = [x["criterion_id"] for x in r["criteria"]]
         if sorted(codes) != sorted(OFFICIAL_CODES):
-            problems.append(f"{r['conversation_id']}: критерии {codes} не совпадают с кодами организаторов")
+            extra = [c for c in codes if c not in OFFICIAL_CODES]
+            missing = [c for c in OFFICIAL_CODES if c not in codes]
+            problems.append(f"{r['conversation_id']}: нет кодов {missing}, лишние {extra}. Если критерий заменён, "
+                            f"впишите ему код заменённого в «Чек-листы» → критерий → «Ещё» → «ID (для экспорта)»")
     return problems
 
 
