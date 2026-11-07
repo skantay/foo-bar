@@ -54,6 +54,7 @@ export class Api {
   deleteGroundTruth(id) { return this.req("DELETE", `/api/ground-truth/${encodeURIComponent(id)}`); }
   exportUrl(fmt) { return `${this.base}/api/export?fmt=${fmt}`; }
   exportJson() { return this.get("/api/export"); }
+  officialResults(dataset) { return this.get(`/api/results?dataset=${encodeURIComponent(dataset)}`); }
 
   stats(checklistId) { return this.get(`/api/stats${checklistId ? `?checklist_id=${checklistId}` : ""}`); }
 }

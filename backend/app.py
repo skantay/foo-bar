@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -613,6 +614,77 @@ def export(checklist_id: str | None = None, dataset: str | None = None, fmt: str
     from fastapi.responses import Response
     return Response("\ufeff" + buf.getvalue(), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="cqa_v{checklist["version"]}.csv"'})
+
+
+# ---------- результаты в формате организаторов (Appendix Results, JSON 1.0) ----------
+
+# наши id критериев → коды организаторов
+OFFICIAL_CODE = {"needs": "discovery", "management": "dialogue", "closing": "closure", "gross_errors": "critical"}
+OFFICIAL_CODES = ["contact", "discovery", "identification", "consultation", "empathy", "dialogue", "closure", "critical"]
+TEAM_NAME = os.getenv("CQA_TEAM_NAME", "foo-bar")
+
+
+def official_value(c: dict, a: dict | None):
+    """true/false = Да/Нет, null = N/A, число = ступень шкалы до учёта веса."""
+    if not a or a.get("na") or a.get("value") is None:
+        return None
+    if c.get("type") == "scale":
+        v = float(a["value"])
+        return int(v) if v.is_integer() else v
+    return a["value"] >= 1
+
+
+def official_record(d: dict, e: dict | None, checklist: dict) -> dict:
+    if not e or e.get("status") != "done":
+        reason = (e or {}).get("error") or ("Оценка ещё не завершена" if e else "Диалог не оценён")
+        return {"conversation_id": d["id"], "status": "error", "criteria": [], "score": None, "error": reason}
+    fa = final_answers(e)
+    criteria = []
+    for c in checklist["criteria"]:
+        a = fa.get(c["id"]) or {}
+        turns = sorted({x["turn"] + 1 for x in a.get("evidence") or []})  # нумерация с 1 по всему транскрипту
+        text = (a.get("na_reason") if a.get("na") else a.get("explanation")) or ""
+        criteria.append({"criterion_id": OFFICIAL_CODE.get(c["id"], c["id"]), "value": official_value(c, a),
+                         # в тексте модель ссылается на [N] с нуля — приводим к нумерации с 1, как evidence_turns
+                         "rationale": re.sub(r"\[(\d+)\]", lambda m: f"[{int(m.group(1)) + 1}]", text),
+                         "evidence_turns": turns})
+    critical = next((x["value"] for x in criteria if x["criterion_id"] == "critical"), None)
+    return {"conversation_id": d["id"], "status": "ok", "criteria": criteria,
+            "score": {"final_score": e["final_result"]["total"],
+                      "critical_flag": bool(critical) if critical is not None else bool(e["final_result"]["critical_errors"])}}
+
+
+def validate_results(doc: dict, expected_ids: list[str]) -> list[str]:
+    problems = []
+    ids = [r["conversation_id"] for r in doc["results"]]
+    if len(ids) != len(set(ids)):
+        problems.append("повторяющиеся conversation_id")
+    if missing := set(expected_ids) - set(ids):
+        problems.append(f"нет записей: {', '.join(sorted(missing))}")
+    for r in doc["results"]:
+        if r["status"] == "error":
+            problems.append(f"{r['conversation_id']}: ошибка оценки — {r['error']}")
+            continue
+        codes = [x["criterion_id"] for x in r["criteria"]]
+        if sorted(codes) != sorted(OFFICIAL_CODES):
+            problems.append(f"{r['conversation_id']}: критерии {codes} не совпадают с кодами организаторов")
+    return problems
+
+
+@app.get("/api/results")
+def official_results(dataset: str, checklist_id: str | None = None):
+    """Файл results.json для сдачи: одна запись на каждый диалог набора, включая неоценённые (status=error)."""
+    checklist = get_checklist(checklist_id) if checklist_id else active_checklist()
+    dialogs = sorted((d for d in db.all("dialogs") if d["dataset"] == dataset), key=lambda d: d["id"])
+    if not dialogs:
+        raise HTTPException(404, f"В наборе {dataset} нет диалогов")
+    latest = latest_evaluations()
+    b = evaluator.backend()
+    doc = {"schema_version": "1.0", "team_name": TEAM_NAME,
+           "model": {"mode": "local" if b == "mock" else "external_api", "name": "mock" if b == "mock" else evaluator.MODEL},
+           "results": [official_record(d, latest.get((d["id"], checklist["id"])), checklist) for d in dialogs]}
+    return {"document": doc, "problems": validate_results(doc, [d["id"] for d in dialogs]),
+            "checklist_version": checklist["version"]}
 
 
 def gt_value(c: dict, v):

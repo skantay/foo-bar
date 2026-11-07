@@ -3,7 +3,10 @@ import { download, esc, fmtScore, icon, toast } from "../ui.js";
 // Сверка оценок ИИ с эталоном (Ground Truth): загруженным файлом или решениями проверяющего.
 export async function mount(el, ctx, _params, top) {
   ctx.setTitle("Точность", "Сравнение оценок ИИ с эталонными оценками экспертов");
+  const sets = await ctx.api.datasets().catch(() => []);
   top.innerHTML = `
+    <select class="cqa-select" data-ds title="Набор для results.json">${sets.map((d) => `<option value="${esc(d.id)}">${esc(d.id)} (${d.count})</option>`).join("")}</select>
+    <button class="cqa-btn primary" data-exp="official" title="Файл для сдачи организаторам: results/dev|prod/results.json">${icon.down} results.json</button>
     <button class="cqa-btn" data-exp="csv">${icon.down} Экспорт CSV</button>
     <button class="cqa-btn" data-exp="json">${icon.down} Экспорт JSON</button>
     <button class="cqa-btn primary" data-gt>${icon.upload} Загрузить эталон</button>
@@ -54,6 +57,15 @@ export async function mount(el, ctx, _params, top) {
   });
   top.addEventListener("click", async (e) => {
     const exp = e.target.closest("[data-exp]")?.dataset.exp;
+    if (exp === "official") {
+      const ds = top.querySelector("[data-ds]").value;
+      if (!ds) return toast("Нет загруженных наборов", true);
+      const r = await ctx.api.officialResults(ds);
+      download("results.json", JSON.stringify(r.document, null, 2));
+      const err = r.document.results.filter((x) => x.status === "error").length;
+      toast(r.problems.length ? `results.json: ${r.problems.length} проблем — ${r.problems[0]}` : `results.json: ${r.document.results.length} записей, ошибок ${err}`,
+        r.problems.length > 0);
+    }
     if (exp === "csv") location.href = ctx.api.exportUrl("csv");
     if (exp === "json") download(`cqa_results_v${ctx.checklist.version}.json`, JSON.stringify(await ctx.api.exportJson(), null, 2));
     if (e.target.closest("[data-gt]")) top.querySelector("[data-file]").click();
