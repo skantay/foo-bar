@@ -779,7 +779,9 @@ def validate_results(doc: dict, expected_ids: list[str]) -> list[str]:
         if sorted(codes) != sorted(OFFICIAL_CODES):
             extra = [c for c in codes if c not in OFFICIAL_CODES]
             missing = [c for c in OFFICIAL_CODES if c not in codes]
-            problems.append(f"{r['conversation_id']}: нет кодов {missing}, лишние {extra}. Если критерий заменён, "
+            diff = "; ".join(x for x in (f"нет кодов {', '.join(missing)}" if missing else "",
+                                         f"лишние {', '.join(extra)}" if extra else "") if x)
+            problems.append(f"{r['conversation_id']}: {diff}. Если критерий заменён, "
                             f"впишите ему код заменённого в «Чек-листы» → критерий → «Ещё» → «ID (для экспорта)»")
         for x in r["criteria"]:
             dom = OFFICIAL_VALUES.get(x["criterion_id"])
