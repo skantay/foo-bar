@@ -50,9 +50,29 @@ SPEAKER_ALIAS = {"оператор": "operator", "agent": "operator", "клие�
                  "user": "client", "бот": "bot", "система": "system"}
 
 
+ROLES = ("operator", "client", "bot", "system")
+MAX_UPLOAD = 10 * 1024 * 1024
+
+
 def speaker(s) -> str:
     s = str(s or "").strip().lower()
     return SPEAKER_ALIAS.get(s, s)
+
+
+def check_dialog(d: dict, need_operator: bool) -> None:
+    """Строгая проверка загружаемого файла: мусор не должен становиться «диалогом».
+
+    Оператор обязателен только для txt: в наборе организаторов бывают чаты, где оператор
+    не подключился, — их нужно оценить и сдать, а не отклонять весь файл."""
+    for i, t in enumerate(d["transcript"]):
+        if t["speaker"] not in ROLES:
+            raise ValueError(f"реплика {i + 1}: неизвестная роль {t['speaker']!r}, ожидается {', '.join(ROLES)}")
+        if not t["text"].strip():
+            raise ValueError(f"реплика {i + 1}: пустой текст")
+    if not d["transcript"]:
+        raise ValueError("пустой транскрипт")
+    if need_operator and not any(t["speaker"] == "operator" for t in d["transcript"]):
+        raise ValueError("нет ни одной реплики оператора — оценивать нечего")
 
 
 def normalize_record(rec: dict, dataset: str, source: str) -> dict:
@@ -64,6 +84,8 @@ def normalize_record(rec: dict, dataset: str, source: str) -> dict:
     if audio and not re.match(r"https?://", str(audio), re.I):  # в ссылку плеера — только http(s)
         audio = None
     channel = rec.get("channel") or ("voice call" if audio else "agent chat")
+    if any(not isinstance(t, dict) or not isinstance(t.get("text", ""), str) for t in transcript):
+        raise ValueError("реплика должна быть объектом с текстом-строкой")
     return {
         "id": str(cid),
         "dataset": dataset,
@@ -76,7 +98,7 @@ def normalize_record(rec: dict, dataset: str, source: str) -> dict:
     }
 
 
-def import_payload(payload, dataset: str, source: str) -> tuple[list[str], str]:
+def import_payload(payload, dataset: str, source: str, strict: bool = False, need_operator: bool = False) -> tuple[list[str], str]:
     """Принимает ответ API организаторов, массив записей или одну запись.
 
     Возвращает id и фактический набор: у ответа API он берётся из dataset_group_id.
@@ -92,12 +114,22 @@ def import_payload(payload, dataset: str, source: str) -> tuple[list[str], str]:
         records = payload
     else:
         records = [payload]
-    ids = []
-    for rec in records:
+    if not isinstance(records, list) or not records:
+        raise HTTPException(400, "В файле нет записей диалогов")
+    docs = []
+    for rec in records:  # сначала проверяем всё, чтобы плохой файл не загрузился наполовину
         try:
+            if not isinstance(rec, dict):
+                raise ValueError("ожидается объект диалога")
             d = normalize_record(rec, dataset, source)
+            if strict:
+                check_dialog(d, need_operator)
         except ValueError as e:
-            raise HTTPException(400, f"Некорректная запись: {e}")
+            cid = rec.get("conversation_id") if isinstance(rec, dict) else None
+            raise HTTPException(400, f"Некорректная запись{f' {cid}' if cid else ''}: {e}")
+        docs.append(d)
+    ids = []
+    for d in docs:
         old = db.get("dialogs", d["id"])
         if old:
             d["created_at"] = old["created_at"]
@@ -131,30 +163,44 @@ async def sync_dialogs(body: dict = Body(...)):
 
 @app.post("/api/dialogs/upload")
 async def upload_dialogs(file: UploadFile = File(...), dataset: str = "UPLOAD"):
-    raw = await file.read()
+    raw = await file.read(MAX_UPLOAD + 1)
+    if len(raw) > MAX_UPLOAD:
+        raise HTTPException(400, "Файл больше 10 МБ")
     try:
-        payload = json.loads(raw.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        payload = parse_plain_transcript(raw.decode("utf-8", errors="replace"), Path(file.filename or "dialog").stem)
-    ids, dataset = import_payload(payload, dataset, "upload")
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        raise HTTPException(400, "Файл не текстовый: ожидается JSON или транскрипт .txt в UTF-8")
+    plain = False
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        try:
+            payload, plain = parse_plain_transcript(text, Path(file.filename or "dialog").stem), True
+        except ValueError as e:
+            raise HTTPException(400, f"Не похоже на транскрипт: {e}")
+    ids, dataset = import_payload(payload, dataset, "upload", strict=True, need_operator=plain)
     return {"imported": len(ids), "dataset": dataset, "ids": ids}
 
 
 def parse_plain_transcript(text: str, cid: str) -> dict:
     """Текстовый транскрипт: строки вида `[00:12] operator: текст` или `client: текст`."""
     turns = []
-    for line in text.splitlines():
+    for n, line in enumerate(text.splitlines(), 1):
         line = line.strip()
         if not line:
             continue
-        ts = ""
-        if line.startswith("[") and "]" in line:
-            ts, line = line[1:line.index("]")], line[line.index("]") + 1:].strip()
-        sp, _, msg = line.partition(":")
+        ts, body = "", line
+        if body.startswith("[") and "]" in body:
+            ts, body = body[1:body.index("]")], body[body.index("]") + 1:].strip()
+        sp, sep, msg = body.partition(":")
         sp = speaker(sp)
-        if sp not in ("operator", "client", "bot", "system"):
-            sp, msg = "client", line
-        turns.append({"timestamp": ts, "speaker": sp, "text": msg.strip()})
+        if sep and sp in ROLES:
+            turns.append({"timestamp": ts, "speaker": sp, "text": msg.strip()})
+        elif turns:  # строка без роли — продолжение предыдущей реплики
+            turns[-1]["text"] += "\n" + line
+        else:
+            raise ValueError(f"строка {n} должна начинаться с роли: «operator: …», «client: …» "
+                             f"(можно с меткой времени «[00:12] operator: …»)")
     return {"conversation_id": cid, "channel": "agent chat", "language": "RU", "transcript": turns}
 
 

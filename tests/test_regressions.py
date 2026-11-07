@@ -54,7 +54,7 @@ def test_speaker_aliases_in_json(client):
 
 def test_non_http_audio_url_dropped(client):
     upload(client, {"records": [{"conversation_id": "a2", "audio_url": "javascript:alert(1)",
-                                 "transcript": [{"timestamp": "", "speaker": "client", "text": "x"}]}]})
+                                 "transcript": [{"timestamp": "", "speaker": "operator", "text": "x"}]}]})
     assert client.get("/api/dialogs/a2").json()["audio_url"] is None
 
 
@@ -210,3 +210,76 @@ def test_official_score_not_zeroed_and_ignores_manual_points(evaluated, default_
     if old_contact is True:  # те же value → тот же итог, несмотря на ручные баллы и режим zero
         assert rec["score"]["final_score"] == old["score"]["final_score"]
     assert rec["score"]["final_score"] > 0
+
+
+# ---------- валидация загружаемых файлов ----------
+
+SPAM = """Заказ: 7479289
+Сайт недоступен по старому адресу? Смотрите актуальный адрес на: https://darkstore.contact
+==========================================
+↓↓↓↓ Ваш заказ: ↓↓↓↓"""
+
+
+@pytest.mark.parametrize("name,content", [
+    ("spam.txt", SPAM.encode()),                                     # случайный текст без ролей
+    ("pic.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\xff\xfe"),      # бинарный файл
+    ("empty.txt", b""),
+    ("num.json", b"42"),
+    ("str.json", b'"hello"'),
+    ("empty.json", b'{"records": []}'),
+    ("bad_role.json", json.dumps({"records": [{"conversation_id": "x", "transcript": [
+        {"speaker": "hacker", "text": "hi"}, {"speaker": "operator", "text": "hello"}]}]}).encode()),
+    ("empty_transcript.json", json.dumps({"records": [{"conversation_id": "x", "transcript": []}]}).encode()),
+    ("text_obj.json", json.dumps({"records": [{"conversation_id": "x", "transcript": [
+        {"speaker": "operator", "text": {"a": 1}}]}]}).encode()),
+    ("no_operator.txt", "client: привет\nclient: ау".encode()),
+])
+def test_upload_rejects_garbage(client, name, content):
+    r = client.post("/api/dialogs/upload", files={"file": (name, content, "application/octet-stream")})
+    assert r.status_code == 400, r.text
+    assert client.get("/api/dialogs").json() == []
+
+
+def test_bad_record_does_not_half_import(client):
+    """Плохая запись в середине файла не должна оставлять в базе первые записи."""
+    good = {"conversation_id": "ok-1", "transcript": [{"speaker": "operator", "text": "Здравствуйте"}]}
+    bad = {"conversation_id": "bad-1", "transcript": [{"speaker": "???", "text": "x"}]}
+    r = client.post("/api/dialogs/upload", files={"file": ("d.json", json.dumps({"records": [good, bad]}), "application/json")})
+    assert r.status_code == 400 and "bad-1" in r.json()["detail"]
+    assert client.get("/api/dialogs").json() == []
+
+
+def test_plain_text_continuation_lines(client):
+    txt = "[00:01] client: Здравствуйте\nу меня вопрос по выводу\n[00:30] operator: Добрый день, меня зовут Ая"
+    r = client.post("/api/dialogs/upload", files={"file": ("chat.txt", txt.encode(), "text/plain")})
+    assert r.status_code == 200
+    t = client.get("/api/dialogs/chat").json()["transcript"]
+    assert [x["speaker"] for x in t] == ["client", "operator"] and t[0]["text"].endswith("по выводу")
+
+
+def test_sync_stays_lenient_for_dialog_without_operator(client, monkeypatch):
+    """Контрольный набор не должен отклоняться целиком из-за одного диалога без оператора."""
+    payload = {"isSuccess": True, "data": {"dataset_group_id": "CTRL", "records": [
+        {"conversation_id": "c1", "transcript": [{"speaker": "client", "text": "hi"}]}]}}
+
+    class R:
+        status_code = 200
+        def json(self): return payload
+
+    class C:
+        def __init__(self, **kw): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): pass
+        async def get(self, url): return R()
+
+    monkeypatch.setattr(app_module.httpx, "AsyncClient", C)
+    assert client.post("/api/dialogs/sync", json={"group_id": "CTRL"}).json()["imported"] == 1
+
+
+def test_organizers_file_with_dialog_without_operator_is_accepted(client):
+    """Файл набора организаторов (запасной путь, если API недоступен) не отклоняется из-за чата без оператора."""
+    payload = {"isSuccess": True, "data": {"dataset_group_id": "CTRL", "records": [
+        {"conversation_id": "c1", "transcript": [{"timestamp": "00:00", "speaker": "client", "text": "hi"},
+                                                  {"timestamp": "06:00", "speaker": "system", "text": "Чат закрыт"}]}]}}
+    r = client.post("/api/dialogs/upload", files={"file": ("ctrl.json", json.dumps(payload), "application/json")})
+    assert r.status_code == 200 and r.json()["dataset"] == "CTRL"
