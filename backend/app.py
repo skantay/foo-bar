@@ -242,6 +242,8 @@ def criteria_marks(e: dict) -> list[dict]:
             m = "na"
         elif a.get("value") is None:
             m = "none"
+        elif a.get("critical_error"):
+            m = "crit"
         elif c.get("type") == "flag":
             m = "crit" if a["value"] else "ok"
         elif a.get("manual_ratio") is not None:

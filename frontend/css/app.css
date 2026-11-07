@@ -19,9 +19,9 @@ cqa-app {
   --no-soft: #ffe4eb;
   --part: #f5a623;
   --part-soft: #fff1d9;
-  --na: #2c7ef8;
-  --na-soft: #e1edfe;
-  --crit: #d7263d;
+  --na: #a3ada8;
+  --na-soft: #eef1f0;
+  --crit: #9f1239;
   --shadow: 0 1px 2px rgba(16, 40, 30, .06), 0 4px 16px rgba(16, 40, 30, .05);
   --radius: 12px;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -116,7 +116,7 @@ cqa-app a { color: var(--brand-2); }
 .cqa-chip.yes { background: var(--yes-soft); color: #00835f; }
 .cqa-chip.no { background: var(--no-soft); color: #c4174a; }
 .cqa-chip.part { background: var(--part-soft); color: #a86a00; }
-.cqa-chip.na { background: var(--na-soft); color: #1b5fc4; }
+.cqa-chip.na { background: var(--na-soft); color: #5d6b65; }
 .cqa-chip.crit { background: var(--crit); color: #fff; }
 .cqa-chip.brand { background: var(--accent-soft); color: var(--brand-2); }
 .cqa-chip.warn { background: var(--part-soft); color: #a86a00; }
@@ -207,7 +207,7 @@ cqa-app a { color: var(--brand-2); }
 .cqa-turn.flash { animation: cqa-flash 1.6s ease; }
 @keyframes cqa-flash { 0%, 40% { background: rgba(245, 166, 35, .28); } 100% { background: transparent; } }
 mark.cqa-q { background: rgba(245, 166, 35, .35); color: inherit; border-radius: 3px; padding: 0 1px; }
-.cqa-range-band { font-size: 12px; padding: 6px 10px; border-radius: 8px; background: var(--na-soft); color: #1b5fc4; margin: 0 0 6px; }
+.cqa-range-band { font-size: 12px; padding: 6px 10px; border-radius: 8px; background: #e1edfe; color: #1b5fc4; margin: 0 0 6px; }
 
 .cqa-audio { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line-2); font-size: 13px; }
 
@@ -224,7 +224,7 @@ mark.cqa-q { background: rgba(245, 166, 35, .35); color: inherit; border-radius:
 .cqa-sec .cqa-progress { margin-top: 6px; height: 4px; }
 .cqa-alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: 10px; font-size: 13px; }
 .cqa-alert.crit { background: #fff0f2; border: 1px solid #ffc9d3; color: #9c1530; }
-.cqa-alert.info { background: var(--na-soft); border: 1px solid #c4dafd; color: #1b4f9c; }
+.cqa-alert.info { background: #e1edfe; border: 1px solid #c4dafd; color: #1b4f9c; }
 .cqa-alert.warn { background: var(--part-soft); border: 1px solid #f7d79b; color: #7a4d00; }
 
 .cqa-crit { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; transition: border-color .15s, box-shadow .15s; }
@@ -250,7 +250,7 @@ mark.cqa-q { background: rgba(245, 166, 35, .35); color: inherit; border-radius:
 .cqa-appeal-box { margin-top: 10px; padding: 12px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line-2); }
 .cqa-hist { font-size: 12.5px; padding: 8px 10px; border-left: 3px solid var(--line); margin-top: 8px; }
 .cqa-hist.open { border-color: var(--part); background: #fffaf0; }
-.cqa-hist.resolved { border-color: var(--na); background: #f5f9ff; }
+.cqa-hist.resolved { border-color: #2c7ef8; background: #f5f9ff; }
 
 .cqa-tabs { display: flex; gap: 4px; padding: 3px; background: var(--line-2); border-radius: 10px; }
 .cqa-tabs button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12.5px; color: var(--muted); }
@@ -343,12 +343,11 @@ cqa-app .cqa-chip svg { width: 11px; height: 11px; }
 /* ---------- UX: сводки, навигация, прогресс ---------- */
 .cqa-marks { display: inline-flex; gap: 3px; }
 .cqa-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--line); display: inline-block; }
-.cqa-dot.m-yes, .cqa-dot.m-ok { background: var(--yes); }
+.cqa-dot.m-yes, .cqa-dot.m-ok { background: var(--yes); }  /* «нет нарушения» по флагу — тот же зелёный, что «Нет» в карточке */
 .cqa-dot.m-part { background: var(--part); }
 .cqa-dot.m-no { background: var(--no); }
-.cqa-dot.m-na { background: var(--na-soft); box-shadow: inset 0 0 0 1px var(--na); }
+.cqa-dot.m-na { background: var(--na); }
 .cqa-dot.m-crit { background: var(--crit); }
-.cqa-dot.m-ok { opacity: .35; }
 
 .cqa-sc { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
 .cqa-sc td { padding: 7px 8px; border-top: 1px solid var(--line-2); }
@@ -837,4 +836,36 @@ cqa-app .cqa-shell::after {
   cqa-app .cqa-crit-row { grid-template-columns: minmax(0, 1fr) 96px 56px !important; }
   /* широкие таблицы листаются внутри своей карточки, а не тянут страницу */
   cqa-app table.cqa-table { display: block; overflow-x: auto; }
+}
+
+/* ---------- единые цвета статуса критерия: реестр, таблица, карточки ----------
+   зелёный — выполнено, жёлтый — частично, красный — нет, серый — N/A, тёмно-бордовый — нарушение/грубая ошибка */
+cqa-app .cqa-crit[class*=" s-"] { border-left-width: 4px; }
+cqa-app .cqa-crit.s-yes { border-left-color: var(--yes); }
+cqa-app .cqa-crit.s-part { border-left-color: var(--part); }
+cqa-app .cqa-crit.s-no { border-left-color: var(--no); }
+cqa-app .cqa-crit.s-na { border-left-color: var(--na); }
+cqa-app .cqa-crit.s-crit { border-left-color: var(--crit); }
+cqa-app .cqa-crit.s-yes .num { background: var(--yes-soft); color: #00835f; }
+cqa-app .cqa-crit.s-part .num { background: var(--part-soft); color: #a86a00; }
+cqa-app .cqa-crit.s-no .num { background: var(--no-soft); color: #c4174a; }
+cqa-app .cqa-crit.s-na .num { background: var(--na-soft); color: var(--muted); }
+cqa-app .cqa-crit.s-crit .num { background: var(--crit); color: #fff; }
+.cqa-sc tr[class*="s-"] .n { box-shadow: inset 3px 0 0 var(--line); padding-left: 9px; }
+.cqa-sc tr.s-yes .n { box-shadow: inset 3px 0 0 var(--yes); }
+.cqa-sc tr.s-part .n { box-shadow: inset 3px 0 0 var(--part); }
+.cqa-sc tr.s-no .n { box-shadow: inset 3px 0 0 var(--no); }
+.cqa-sc tr.s-na .n { box-shadow: inset 3px 0 0 var(--na); }
+.cqa-sc tr.s-crit .n { box-shadow: inset 3px 0 0 var(--crit); }
+
+/* ---------- оценка ИИ → решение проверяющего → финал ---------- */
+.cqa-steps { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 8px; align-items: stretch; margin-top: 14px; }
+.cqa-steps > div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: var(--surface-2); min-width: 0; }
+.cqa-steps > div > span { display: block; font-size: 11.5px; color: var(--faint); }
+.cqa-steps > div > b { font-size: 15px; }
+.cqa-steps > div.fin { border-color: var(--brand-2); background: var(--accent-soft); }
+.cqa-steps > i { align-self: center; color: var(--faint); font-style: normal; }
+@media (max-width: 760px) {
+  .cqa-steps { grid-template-columns: minmax(0, 1fr); }
+  .cqa-steps > i { display: none; }
 }

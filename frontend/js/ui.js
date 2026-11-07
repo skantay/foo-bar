@@ -60,6 +60,10 @@ export function answerView(crit, a) {
   return { label: `${fmtScore(a.value)}/${s.max}`, cls, hint: label };
 }
 
+// Цвет статуса критерия — один и тот же в реестре, таблице и карточках:
+// yes — выполнено, part — частично, no — нет, na — N/A, crit — нарушение / грубая ошибка
+export const markOf = (crit, a) => (a?.critical_error ? "crit" : answerView(crit, a).cls || "none");
+
 // Допустимые значения критерия для выбора человеком
 export function valueOptions(c) {
   if (c.type === "flag") return [{ v: 1, label: "Да — нарушение", cls: "no" }, { v: 0, label: "Нет", cls: "yes" }];

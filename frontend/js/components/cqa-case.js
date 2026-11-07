@@ -1,7 +1,7 @@
 // <cqa-case dialog-id="..." api-base="..."> — карточка кейса: транскрипт + оценка + апелляции.
 // Самодостаточный компонент: его можно встроить отдельно на форму обращения в Dynamics 365.
 import { Api } from "../api.js";
-import { answerView, esc, fmtScore, fmtTs, icon, langTag, money, remember, remembered, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
+import { answerView, esc, fmtScore, fmtTs, icon, langTag, markOf, money, remember, remembered, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
 
 const PII_LABEL = { PHONE: "телефон", IIN: "ИИН", CARD: "карта", IBAN: "IBAN", EMAIL: "email",
   "ИМЯ_ОПЕРАТОРА": "имя оператора", "ИМЯ_КЛИЕНТА": "имя клиента" };
@@ -90,7 +90,6 @@ class CqaCase extends HTMLElement {
     const cl = ev.checklist;
     const fr = ev.final_result;
     const ai = ev.ai_result;
-    const changed = ai.total !== fr.total;
     const others = this.dialog.evaluations.filter((e) => e.status === "done");
     const stale = cl.id !== this.active.id;
     const C = 2 * Math.PI * 64;
@@ -114,14 +113,11 @@ class CqaCase extends HTMLElement {
               <svg width="150" height="150"><circle cx="75" cy="75" r="64" stroke="var(--line-2)" stroke-width="12" fill="none"/>
                 <circle cx="75" cy="75" r="64" stroke="${color}" stroke-width="12" fill="none" stroke-linecap="round"
                   stroke-dasharray="${C * pct} ${C}" style="transition:stroke-dasharray .6s"/></svg>
-              <div class="val"><div><b>${fmtScore(fr.total)}</b><span>из 100${changed ? `<br>ИИ: ${fmtScore(ai.total)}` : ""}</span></div></div>
+              <div class="val"><div><b>${fmtScore(fr.total)}</b><span>из 100</span></div></div>
             </div>
             <div>
               <div class="cqa-row" style="margin-bottom:6px">
                 ${fr.passed == null ? "" : fr.passed ? `<span class="cqa-chip yes">Пройден · порог ${cl.pass_threshold}</span>` : `<span class="cqa-chip no">Не пройден · порог ${cl.pass_threshold}</span>`}
-                ${ev.case_status === "disputed" ? `<span class="cqa-chip warn">Апелляция на рассмотрении</span>` : ""}
-                ${ev.case_status === "reviewed" ? `<span class="cqa-chip na">Пересмотрен</span>` : ""}
-                ${changed ? `<span class="cqa-chip dark">Итог изменён проверяющим: ${fmtScore(ai.total)} → ${fmtScore(fr.total)}</span>` : ""}
               </div>
               <div style="font-size:13.5px">${esc(ev.summary)}</div>
               <div class="cqa-faint" style="font-size:12px;margin-top:6px">
@@ -129,6 +125,11 @@ class CqaCase extends HTMLElement {
                 ${ev.usage?.input_tokens ? ` · ${ev.usage.input_tokens + (ev.usage.cache_read_input_tokens || 0) + (ev.usage.cache_creation_input_tokens || 0)} вх. / ${ev.usage.output_tokens} вых. токенов` : ""} · ${timeAgo(ev.created_at)}
               </div>
             </div>
+          </div>
+          <div class="cqa-steps">
+            <div><span>Оценка ИИ</span><b>${fmtScore(ai.total)}</b></div><i>→</i>
+            <div><span>Решение проверяющего</span><b>${esc(this.decision())}</b></div><i>→</i>
+            <div class="fin"><span>Финальный результат</span><b>${fmtScore(fr.total)}</b></div>
           </div>
           ${fr.critical_errors.length ? `<div class="cqa-alert crit" style="margin-top:12px">${icon.flag}<div><b>Грубая ошибка</b>${cl.critical_mode === "zero" ? " — итог обнулён" : " — отмечена отдельно, итог не обнуляется"}:
             ${fr.critical_errors.map((id) => {
@@ -143,7 +144,7 @@ class CqaCase extends HTMLElement {
             const row = fr.criteria.find((r) => r.criterion_id === c.id) || {};
             const v = answerView(c, f);
             const open = (ev.appeals || []).some((x) => x.criterion_id === c.id && x.status === "open");
-            return `<tr data-jump="${esc(c.id)}"><td class="n">${i + 1}</td>
+            return `<tr data-jump="${esc(c.id)}" class="s-${markOf(c, f)}"><td class="n">${i + 1}</td>
               <td>${esc(c.name)}${a.votes?.length > 1 && a.agreement < 1 ? `<span class="w" title="Прогоны разошлись: ${esc(a.votes.join(", "))}">⚠ ${Math.round(a.agreement * a.votes.length)}/${a.votes.length}</span>` : ""}
                 ${ev.overrides?.[c.id] ? `<span class="cqa-chip na" style="height:18px;margin-left:6px">изменено</span>` : ""}${open ? `<span class="cqa-chip warn" style="height:18px;margin-left:6px">апелляция</span>` : ""}</td>
               <td class="a"><span class="cqa-chip ${v.cls}">${esc(v.label)}</span></td>
@@ -157,8 +158,6 @@ class CqaCase extends HTMLElement {
             <ul style="margin:4px 0 0;font-size:12.5px">${ev.pii.masked_turns.map((t) => `<li>[${t.turn}] ${esc(t.text)}</li>`).join("")}</ul>` : ""}</details>` : ""}
           ${ev.warnings?.length ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Предупреждения валидации (${ev.warnings.length})</summary>
             <ul style="margin:6px 0 0;font-size:12.5px">${ev.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>` : ""}
-          ${ev.raw?.length ? `<details style="margin-top:8px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Сырой ответ модели (${ev.raw.length})</summary>
-            <pre class="cqa-mono" style="white-space:pre-wrap;max-height:320px;overflow:auto;background:var(--surface-2);padding:10px;border-radius:8px">${esc(JSON.stringify(ev.raw, null, 2))}</pre></details>` : ""}
         </div>
       </div>
       <div>${cl.criteria.map((c, i) => this.renderCrit(c, i)).join("")}</div>`;
@@ -166,6 +165,16 @@ class CqaCase extends HTMLElement {
 
   verOf(e) {
     return e.checklist_id === this.ev?.checklist_id ? this.ev.checklist_version : e.checklist_id === this.active.id ? this.active.version : e.checklist_version ?? "?";
+  }
+
+  // Что решил проверяющий — среднее звено «Оценка ИИ → решение → финал» (ТЗ: «исходная оценка, решение и финальный результат»)
+  decision() {
+    const appeals = this.ev.appeals || [];
+    const n = Object.keys(this.ev.overrides || {}).length;
+    if (appeals.some((x) => x.status === "open")) return "апелляция на рассмотрении";
+    if (n) return n === 1 ? "изменён 1 критерий" : `изменено критериев: ${n}`;
+    if (appeals.length) return "оценка ИИ подтверждена";
+    return "апелляций нет";
   }
 
   crit(id) { return this.ev.checklist.criteria.find((c) => c.id === id); }
@@ -189,7 +198,7 @@ class CqaCase extends HTMLElement {
     const evTurns = (a.evidence || []).map((e) => e.turn);
     const canAppeal = c.appealable !== false && !open && ev.status === "done";
 
-    return `<div class="cqa-crit" data-crit="${esc(c.id)}" data-ev="${evTurns.join(",")}" data-range="${a.checked_range ? `${a.checked_range.from_turn}-${a.checked_range.to_turn}` : ""}">
+    return `<div class="cqa-crit s-${markOf(c, f)}" data-crit="${esc(c.id)}" data-ev="${evTurns.join(",")}" data-range="${a.checked_range ? `${a.checked_range.from_turn}-${a.checked_range.to_turn}` : ""}">
       <div class="cqa-crit-h" data-focus>
         <div class="num">${i + 1}</div>
         <div style="min-width:0">
