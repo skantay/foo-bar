@@ -111,6 +111,15 @@ def test_numeric_strings_are_coerced(client, default_checklist):
     assert c["pass_threshold"] == 70.0 and c["criteria"][0]["weight"] == 10.0
 
 
+def test_manual_points_non_numeric_is_400(evaluated):
+    ev = latest_eval(evaluated, "t-ru-001")
+    ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "consultation",
+                                              "comment": "x"}).json()
+    r = evaluated.post(f"/api/appeals/{ap['id']}/decision",
+                       json={"decision": "change", "value": 15, "manual_points": "abc", "reason": "r"})
+    assert r.status_code == 400
+
+
 # ---------- оценки и results.json ----------
 
 def test_failed_rerun_does_not_hide_done_result(evaluated):
@@ -178,14 +187,14 @@ def test_ground_truth_in_results_json_format(evaluated):
     assert row["gt_total"] == 87.5
 
 
-def test_official_score_not_zeroed_by_critical_flag(evaluated, default_checklist):
+def test_official_score_not_zeroed_and_ignores_manual_points(evaluated, default_checklist):
     """Appendix: final_score выводится из value критериев и не обнуляется флагом грубой ошибки."""
     base = evaluated.get("/api/results", params={"dataset": "TEST"}).json()["document"]["results"]
     ev = latest_eval(evaluated, "t-ru-001")
     ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "contact",
                                               "comment": "x"}).json()
     evaluated.post(f"/api/appeals/{ap['id']}/decision",
-                   json={"decision": "change", "value": 1, "reason": "представился"})
+                   json={"decision": "change", "value": 1, "manual_points": 5, "reason": "частично"})
     ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "gross_errors",
                                               "comment": "x"}).json()
     evaluated.post(f"/api/appeals/{ap['id']}/decision", json={"decision": "change", "value": 1, "reason": "оскорбление"})
@@ -198,7 +207,7 @@ def test_official_score_not_zeroed_by_critical_flag(evaluated, default_checklist
     old = next(r for r in base if r["conversation_id"] == "t-ru-001")
     assert contact["value"] is True and rec["score"]["critical_flag"] is True
     old_contact = next(c for c in old["criteria"] if c["criterion_id"] == "contact")["value"]
-    if old_contact is True:  # те же value → тот же итог, несмотря на режим zero
+    if old_contact is True:  # те же value → тот же итог, несмотря на ручные баллы и режим zero
         assert rec["score"]["final_score"] == old["score"]["final_score"]
     assert rec["score"]["final_score"] > 0
 
@@ -274,55 +283,3 @@ def test_organizers_file_with_dialog_without_operator_is_accepted(client):
                                                   {"timestamp": "06:00", "speaker": "system", "text": "Чат закрыт"}]}]}}
     r = client.post("/api/dialogs/upload", files={"file": ("ctrl.json", json.dumps(payload), "application/json")})
     assert r.status_code == 200 and r.json()["dataset"] == "CTRL"
-
-
-def test_job_eta_from_own_pace(client, monkeypatch):
-    """Прогресс оценки: «осталось ≈» по темпу самой задачи; до первого результата — без оценки."""
-    job = {"id": "job_eta", "status": "running", "total": 10, "finished": 4, "created_at": 1000.0, "failed": []}
-    monkeypatch.setitem(app_module.JOBS, "job_eta", job)
-    monkeypatch.setattr(app_module.db, "now", lambda: 1040.0)
-    assert client.get("/api/jobs/job_eta").json()["eta_s"] == 60  # 40 с на 4 диалога → ещё 6 за 60 с
-    job["finished"] = 0
-    assert client.get("/api/jobs/job_eta").json()["eta_s"] is None
-
-
-# ---------- запись звонка ----------
-
-MP3 = b"ID3" + bytes(range(256)) * 4
-
-
-def fake_recordings(monkeypatch, pages):
-    """Сервер записей как у организаторов: HTML-страница с <source>, mp3 без поддержки Range."""
-    import httpx
-
-    def handler(req):
-        if req.url.path == "/player/1":
-            return httpx.Response(200, headers={"content-type": "text/html; charset=utf-8"}, text=pages["page"])
-        if req.url.path == "/rec.mp3":
-            assert req.url.params.get("sig") == "s" and req.url.params.get("sv") == "1"  # &amp; раскодирован
-            return httpx.Response(200, headers={"content-type": "audio/mpeg"}, content=MP3)
-        return httpx.Response(404)
-    real = httpx.AsyncClient
-    monkeypatch.setattr(app_module.httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
-    app_module.AUDIO.clear()
-
-
-def test_audio_from_player_page_with_range(loaded, monkeypatch):
-    fake_recordings(monkeypatch, {"page": '<audio><source src="/rec.mp3?sig=s&amp;sv=1" type="audio/mpeg"></audio>'})
-    r = loaded.get("/api/dialogs/t-call-001/audio")
-    assert r.status_code == 200 and r.content == MP3 and r.headers["accept-ranges"] == "bytes"
-    r = loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": "bytes=10-19"})
-    assert r.status_code == 206 and r.content == MP3[10:20] and r.headers["content-range"] == f"bytes 10-19/{len(MP3)}"
-    r = loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": "bytes=-5"})
-    assert r.status_code == 206 and r.content == MP3[-5:]
-    assert loaded.get("/api/dialogs/t-call-001/audio", headers={"Range": f"bytes={len(MP3)}-"}).status_code == 416
-
-
-def test_audio_page_without_source_is_502(loaded, monkeypatch):
-    fake_recordings(monkeypatch, {"page": "<html>Ссылка устарела</html>"})
-    r = loaded.get("/api/dialogs/t-call-001/audio")
-    assert r.status_code == 502 and "Запись недоступна" in r.json()["detail"]
-
-
-def test_chat_has_no_audio(loaded):
-    assert loaded.get("/api/dialogs/t-ru-001/audio").status_code == 404

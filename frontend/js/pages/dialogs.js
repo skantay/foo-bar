@@ -35,7 +35,7 @@ export async function mount(el, ctx, _params, top) {
       <thead><tr>
         <th style="width:34px"><input type="checkbox" data-all></th>
         <th data-sort="id">Диалог</th><th>Язык</th><th>Канал</th><th>Обращение клиента</th>
-        <th class="num" data-sort="turns" title="Все реплики диалога: клиент, оператор, бот и система">Реплик</th><th class="num" data-sort="op" title="Реплики оператора">Оператора</th><th>Критерии</th><th data-sort="score">Балл</th><th>Статус</th><th></th>
+        <th data-sort="turns">Реплик</th><th>Критерии</th><th data-sort="score">Балл</th><th>Статус</th><th></th>
       </tr></thead>
       <tbody data-body></tbody>
     </table></div>
@@ -67,7 +67,7 @@ export async function mount(el, ctx, _params, top) {
       if (F.status) return ev?.case_status === F.status;
       return true;
     });
-    const key = { id: (d) => d.id, turns: (d) => d.turns, op: (d) => d.operator_turns, score: (d) => d.evaluation?.total ?? -1 }[F.sort];
+    const key = { id: (d) => d.id, turns: (d) => d.turns, score: (d) => d.evaluation?.total ?? -1 }[F.sort];
     return r.sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * F.dir);
   }
 
@@ -87,14 +87,13 @@ export async function mount(el, ctx, _params, top) {
         <td>${langTag(d.language)}</td>
         <td><span class="cqa-row" style="gap:6px;color:var(--muted)"><span style="width:16px;display:inline-flex">${channelIcon(d.channel)}</span>${d.channel === "voice call" ? "Звонок" : "Чат"}</span></td>
         <td><div class="cqa-preview">${esc(d.preview)}</div></td>
-        <td class="cqa-muted num">${d.turns}</td>
-        <td class="cqa-muted num">${d.operator_turns}</td>
+        <td class="cqa-muted">${d.turns}<span class="cqa-faint"> · оп. ${d.operator_turns}</span></td>
         <td><span class="cqa-marks">${(ev?.marks || []).map((m) => `<i class="cqa-dot m-${m.m}" title="${esc(m.name)}: ${esc(m.label ?? MARK_TEXT[m.m])}"></i>`).join("")}</span></td>
         <td>${scorePill(ev?.total)}${ev && ev.ai_total !== ev.total && ev.total != null ? `<div class="cqa-faint" style="font-size:11px">ИИ: ${fmtScore(ev.ai_total)}</div>` : ""}</td>
-        <td style="white-space:nowrap">${statusChip(ev)} ${ev?.critical_errors?.length ? `<span class="cqa-chip crit" title="Грубая ошибка">${icon.flag.replace("<svg", '<svg width="11" height="11"')}</span>` : ""}</td>
+        <td>${statusChip(ev)} ${ev?.critical_errors?.length ? `<span class="cqa-chip crit" title="Грубая ошибка">${icon.flag.replace("<svg", '<svg width="11" height="11"')}</span>` : ""}</td>
         <td style="color:var(--faint)">›</td>
       </tr>`;
-    }).join("") || `<tr><td colspan="11" class="cqa-empty">Нет диалогов. Загрузите набор из API организаторов.</td></tr>`;
+    }).join("") || `<tr><td colspan="10" class="cqa-empty">Нет диалогов. Загрузите набор из API организаторов.</td></tr>`;
     $("[data-all]").checked = list.length > 0 && list.every((d) => selected.has(d.id));
     top.querySelector("[data-act=run]").innerHTML = `${icon.play} Оценить${selected.size ? ` (${selected.size})` : ""}`;
   }
@@ -194,12 +193,12 @@ export async function mount(el, ctx, _params, top) {
     const j = await ctx.api.job(id).catch(() => null);
     if (!j || stopped) return;
     const pct = Math.round((j.finished / j.total) * 100);
-    const eta = j.eta_s == null ? "" : j.eta_s < 60 ? " · осталось меньше минуты" : ` · осталось ≈ ${Math.round(j.eta_s / 60)} мин`;
     $("[data-job]").innerHTML = `<div class="cqa-job">
       ${j.status === "running" ? `<span class="cqa-spin"></span>` : icon.check.replace("<svg", '<svg width="16"')}
       <b>${j.status === "running" ? "Идёт оценка" : j.status === "interrupted" ? "Оценка прервана перезапуском — запустите заново" : "Оценка завершена"}</b>
+      <span>${j.finished} / ${j.total}${j.failed.length ? ` · ошибок ${j.failed.length}` : ""}</span>
       <div class="cqa-progress"><i style="width:${pct}%"></i></div>
-      <span>${j.finished} из ${j.total}${j.status === "running" ? eta : ""}${j.failed.length ? ` · ошибок ${j.failed.length}` : ""}</span>
+      <span class="cqa-muted">v${j.checklist_version}</span>
       ${j.status !== "running" ? `<button class="cqa-btn ghost sm" data-close-job style="margin-left:auto">Скрыть</button>` : ""}
     </div>`;
     $("[data-close-job]")?.addEventListener("click", () => { ctx.app.activeJob = null; $("[data-job]").innerHTML = ""; });

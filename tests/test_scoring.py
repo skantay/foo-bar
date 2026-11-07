@@ -98,6 +98,12 @@ def test_sections_are_scored_separately():
     assert secs == {"s1": 100, "s2": 0}
 
 
+def test_manual_ratio_overrides_value():
+    cl = checklist(binary("a", 10), binary("b", 10))
+    r = scoring.compute(cl, {"a": ans(1, manual_ratio=0.5), "b": ans(1)})
+    assert r["total"] == 75
+
+
 @pytest.mark.parametrize("value,expected", [(13, 15), (12, 10), (2.4, 0), (25, 20), (-3, 0)])
 def test_normalize_snaps_to_nearest_step(value, expected):
     assert scoring.normalize_value(scale("c", 20, [0, 5, 10, 15, 20]), value) == expected

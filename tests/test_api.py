@@ -204,16 +204,33 @@ def test_appeal_requires_comment(evaluated):
     assert appeal(evaluated, e["id"], comment=" ").status_code == 400
 
 
-def test_reviewer_sets_only_allowed_values(evaluated):
-    """Ручных баллов нет: проверяющий выбирает только значение критерия (Да / Нет / ступень)."""
+def test_manual_points_apply_only_to_positive_answer(evaluated):
     e = latest_eval(evaluated, "t-call-001")
+    weight = next(c["weight"] for c in e["checklist"]["criteria"] if c["id"] == "contact")
+
     a = appeal(evaluated, e["id"]).json()
     r = evaluated.post(f"/api/appeals/{a['id']}/decision",
-                       json={"decision": "change", "value": 1, "manual_points": 3, "reason": "выполнен"}).json()
-    assert "manual_points" not in r
+                       json={"decision": "change", "value": 1, "manual_points": weight / 2, "reason": "частично"}).json()
+    assert r["manual_points"] == weight / 2
     row = next(x for x in evaluated.get(f"/api/evaluations/{e['id']}").json()["final_result"]["criteria"]
                if x["criterion_id"] == "contact")
-    assert row["ratio"] == 1 and row["points"] == row["effective_weight"]
+    assert row["ratio"] == 0.5 and row["manual"] is True
+
+    a = appeal(evaluated, e["id"]).json()
+    r = evaluated.post(f"/api/appeals/{a['id']}/decision",
+                       json={"decision": "change", "value": 0, "manual_points": weight, "reason": "нет"}).json()
+    assert r["manual_points"] is None
+    row = next(x for x in evaluated.get(f"/api/evaluations/{e['id']}").json()["final_result"]["criteria"]
+               if x["criterion_id"] == "contact")
+    assert row["ratio"] == 0 and row["points"] == 0
+
+
+def test_manual_points_out_of_range(evaluated):
+    e = latest_eval(evaluated, "t-ru-001")
+    a = appeal(evaluated, e["id"]).json()
+    r = evaluated.post(f"/api/appeals/{a['id']}/decision",
+                       json={"decision": "change", "value": 1, "manual_points": 999, "reason": "x"})
+    assert r.status_code == 400
 
 
 # ---------- эталон, точность, экспорт ----------

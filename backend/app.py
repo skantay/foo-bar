@@ -1,6 +1,5 @@
 """CQA — Conversation Quality Analytics: API + статика интерфейса."""
 import asyncio
-import html
 import json
 import logging
 import os
@@ -9,9 +8,9 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
-from fastapi import Body, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -243,10 +242,11 @@ def criteria_marks(e: dict) -> list[dict]:
             m = "na"
         elif a.get("value") is None:
             m = "none"
-        elif a.get("critical_error"):
-            m = "crit"
         elif c.get("type") == "flag":
             m = "crit" if a["value"] else "ok"
+        elif a.get("manual_ratio") is not None:
+            r = a["manual_ratio"]
+            m = "yes" if r >= 1 else "no" if r <= 0 else "part"
         else:
             m = "yes" if a["value"] >= hi else "no" if a["value"] <= lo else "part"
         out.append({"id": c["id"], "name": c["name"], "m": m, "label": answer_label(c, a)})
@@ -292,56 +292,6 @@ def get_dialog(dialog_id: str):
     evals = [e for e in db.all("evaluations") if e["dialog_id"] == dialog_id]
     d["evaluations"] = [eval_brief(e) for e in reversed(evals)]
     return d
-
-
-# Записи звонков: audio_url отдаёт HTML-страницу с <source src="…mp3…"> (подписанная ссылка живёт час),
-# а сервер записи не поддерживает Range — без него браузер не перематывает. Поэтому скачиваем mp3
-# по свежей ссылке и отдаём сами, с Range. Держим только в памяти — реальные записи не пишем на диск.
-AUDIO: dict[str, tuple[bytes, str]] = {}
-AUDIO_MAX = 60 * 1024 * 1024
-
-
-async def fetch_audio(url: str) -> tuple[bytes, str]:
-    async with httpx.AsyncClient(timeout=60, follow_redirects=True) as http:
-        r = await http.get(url)
-        r.raise_for_status()
-        ct = r.headers.get("content-type", "")
-        if not ct.startswith("audio/"):
-            m = re.search(r'<source[^>]+src="([^"]+)"', r.text)
-            if not m:
-                raise ValueError("на странице записи нет ссылки на аудио")
-            r = await http.get(httpx.URL(url).join(html.unescape(m.group(1))))
-            r.raise_for_status()
-            ct = r.headers.get("content-type", "")
-        if not ct.startswith("audio/") or len(r.content) > AUDIO_MAX:
-            raise ValueError("ответ не похож на аудиозапись")
-        return r.content, ct.split(";")[0]
-
-
-@app.get("/api/dialogs/{dialog_id}/audio")
-async def dialog_audio(dialog_id: str, request: Request):
-    d = db.get("dialogs", dialog_id)
-    if not d or not d.get("audio_url"):
-        raise HTTPException(404, "У диалога нет записи")
-    if dialog_id not in AUDIO:
-        try:
-            AUDIO[dialog_id] = await fetch_audio(d["audio_url"])
-        except (httpx.HTTPError, ValueError) as e:
-            raise HTTPException(502, f"Запись недоступна: {e}")
-        while len(AUDIO) > 20:
-            AUDIO.pop(next(iter(AUDIO)))
-    data, ct = AUDIO[dialog_id]
-    head = {"Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600"}
-    m = re.fullmatch(r"bytes=(\d*)-(\d*)", request.headers.get("range", ""))
-    if not m or not (m.group(1) or m.group(2)):
-        return Response(data, media_type=ct, headers=head)
-    n = len(data)
-    start, end = (int(m.group(1)), int(m.group(2) or n - 1)) if m.group(1) else (n - int(m.group(2)), n - 1)
-    start, end = max(0, start), min(end, n - 1)
-    if start > end:
-        return Response(status_code=416, headers={**head, "Content-Range": f"bytes */{n}"})
-    return Response(data[start:end + 1], status_code=206, media_type=ct,
-                    headers={**head, "Content-Range": f"bytes {start}-{end}/{n}"})
 
 
 @app.delete("/api/dialogs/{dialog_id}")
@@ -554,11 +504,7 @@ def get_job(job_id: str):
     j = JOBS.get(job_id) or db.get("jobs", job_id)
     if not j:
         raise HTTPException(404, "Задача не найдена")
-    eta = None
-    if j["status"] == "running" and j.get("finished"):
-        # темп этой же задачи (с учётом параллельных прогонов) × сколько осталось
-        eta = round((db.now() - j["created_at"]) / j["finished"] * (j["total"] - j["finished"]))
-    return {**j, "eta_s": eta}
+    return j
 
 
 @app.get("/api/evaluations/{eid}")
@@ -637,14 +583,28 @@ def decide_appeal(aid: str, body: dict = Body(...)):
         value = None if na else scoring.normalize_value(crit, body.get("value"))
         if not na and value is None:
             raise HTTPException(400, "Укажите новое значение")
+        # Необязательная ручная корректировка: баллы в единицах веса критерия (0…вес),
+        # например 5 из 10 за частично выполненное «Да / Нет».
+        manual_ratio = None
+        mp = body.get("manual_points")
+        lo, _ = scoring.value_range(crit)
+        # «Нет» / нижняя ступень — это 0 баллов по определению, ручная корректировка к ним не применяется
+        if mp not in (None, "") and not na and crit.get("type") != "flag" and value > lo:
+            w = float(crit["weight"])
+            mp = num(mp, "Баллы вручную")
+            if not 0 <= mp <= w:
+                raise HTTPException(400, f"Баллы вручную — от 0 до {w:g}")
+            manual_ratio = round(mp / w, 4)
         e.setdefault("overrides", {})[a["criterion_id"]] = {
             "value": value, "na": na, "critical_error": bool(body.get("critical_error", False)),
+            "manual_ratio": manual_ratio, "manual_points": None if manual_ratio is None else float(mp),
             "reason": reason, "appeal_id": aid, "reviewer": body.get("reviewer") or "Проверяющий", "at": db.now()}
     a.update(status="resolved", decision=decision, reason=reason, reviewer=body.get("reviewer") or "Проверяющий",
              resolved_at=db.now(), new_value=e.get("overrides", {}).get(a["criterion_id"], {}).get("value")
              if decision == "change" else a["disputed_value"],
              new_na=e.get("overrides", {}).get(a["criterion_id"], {}).get("na") if decision == "change"
-             else a["disputed_na"], total_before=before["total"])
+             else a["disputed_na"], total_before=before["total"],
+             manual_points=e.get("overrides", {}).get(a["criterion_id"], {}).get("manual_points") if decision == "change" else None)
     db.put("appeals", a)
     recompute(e, checklist)
     a["total_after"] = e["final_result"]["total"]
@@ -677,8 +637,7 @@ def stats(checklist_id: str | None = None):
             by_lang.setdefault(d.get("language", "?"), []).append(e["final_result"]["total"])
     costs = [e.get("cost_usd", 0) for e in latest if e.get("model") != "mock"]
     return {
-        "checklist": {"id": checklist["id"], "name": checklist["name"], "version": checklist["version"],
-                      "created_at": checklist.get("created_at")},
+        "checklist": {"id": checklist["id"], "name": checklist["name"], "version": checklist["version"]},
         "evaluated": len(latest), "dialogs": len(db.all("dialogs")),
         "avg_total": round(sum(totals) / len(totals), 1) if totals else None,
         # без порога в чек-листе «прошёл/не прошёл» не определено
@@ -709,12 +668,13 @@ def answer_label(c: dict, a: dict | None):
 
 
 def final_answers(e: dict) -> dict:
-    """Ответы ИИ с наложенными решениями проверяющего."""
+    """Ответы ИИ с наложенными решениями проверяющего (включая ручные баллы)."""
     out = {k: dict(v) for k, v in e["answers"].items()}
     for k, ov in (e.get("overrides") or {}).items():
         if k in out:
             out[k].update(value=ov["value"], na=ov["na"],
-                          critical_error=ov.get("critical_error", out[k].get("critical_error", False)))
+                          critical_error=ov.get("critical_error", out[k].get("critical_error", False)),
+                          manual_ratio=ov.get("manual_ratio"))
     return out
 
 
@@ -793,9 +753,9 @@ def official_record(d: dict, e: dict | None, checklist: dict) -> dict:
                          "rationale": re.sub(r"\[(\d+)\]", lambda m: f"[{int(m.group(1)) + 1}]", text),
                          "evidence_turns": turns})
     critical = next((x["value"] for x in criteria if x["criterion_id"] == "critical"), None)
-    # Итог по Appendix выводится из value критериев, без обнуления за грубую ошибку
-    # («флаг не обнуляет итог автоматически»).
-    score = scoring.compute(checklist, fa)["raw_total"]
+    # Итог по Appendix выводится из value критериев: без ручных баллов апелляции
+    # и без обнуления за грубую ошибку («флаг не обнуляет итог автоматически»).
+    score = scoring.compute(checklist, {k: {**a, "manual_ratio": None} for k, a in fa.items()})["raw_total"]
     return {"conversation_id": d["id"], "status": "ok", "criteria": criteria,
             "score": {"final_score": score,
                       "critical_flag": bool(critical) if critical is not None else bool(e["final_result"]["critical_errors"])}}

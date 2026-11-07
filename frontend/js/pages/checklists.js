@@ -45,11 +45,11 @@ export async function mount(el, ctx, [selId], top) {
         const latest = vs[0], active = vs.find((v) => v.active), open = openFamilies.has(latest.family_id);
         return `<div>
           <div class="cqa-ver ${!isNew && vs.some((v) => v.id === base.id) ? "on" : ""}" data-v="${latest.id}" data-fam="${latest.family_id}">
-            <div class="cqa-row"><b class="cqa-grow">${esc(latest.name)}</b>${active ? `<span class="cqa-chip yes">Активен · версия ${active.version}</span>` : ""}</div>
+            <div class="cqa-row"><b class="cqa-grow">${esc(latest.name)}</b>${active ? `<span class="cqa-chip yes">Активен · v${active.version}</span>` : ""}</div>
             <div class="cqa-muted" style="font-size:12.5px;margin-top:2px">${latest.criteria.length} ${plural(latest.criteria.length, "критерий", "критерия", "критериев")} · ${vs.length} ${plural(vs.length, "версия", "версии", "версий")}</div>
           </div>
           ${open && vs.length > 1 ? `<div class="cqa-vers">${vs.map((v) => `<div class="cqa-vrow ${!isNew && v.id === base.id ? "on" : ""}" data-v="${v.id}">
-            версия ${v.version}${v.active ? " · активна" : ""}<span class="cqa-faint" style="margin-left:auto">${timeAgo(v.created_at)}</span></div>`).join("")}</div>` : ""}
+            v${v.version}${v.active ? " · активна" : ""}<span class="cqa-faint" style="margin-left:auto">${timeAgo(v.created_at)}</span></div>`).join("")}</div>` : ""}
         </div>`;
       }).join("")}
     </div>`;
@@ -67,7 +67,7 @@ export async function mount(el, ctx, [selId], top) {
         <input class="cqa-title-in" data-g="name" value="${esc(draft.name || "")}" placeholder="Название чек-листа">
         <input class="cqa-desc-in" data-g="description" value="${esc(draft.description || "")}" placeholder="Описание — необязательно">
         ${!isNew && base ? `<div class="cqa-row cqa-faint" style="font-size:12.5px;margin-top:8px">
-          Версия ${base.version}${base.active ? ` · <span style="color:var(--accent);font-weight:600">активна — по ней идёт оценка</span>` : ` · <button class="cqa-btn sm" data-activate>Сделать активным</button>`}</div>` : ""}
+          Версия v${base.version}${base.active ? ` · <span style="color:var(--accent);font-weight:600">активна — по ней идёт оценка</span>` : ` · <button class="cqa-btn sm" data-activate>Сделать активным</button>`}</div>` : ""}
       </div>
 
       <div class="cqa-row" style="margin:4px 2px 10px"><h3 style="margin:0;font-size:15px">Критерии</h3>
@@ -86,7 +86,7 @@ export async function mount(el, ctx, [selId], top) {
             <textarea class="cqa-textarea" style="min-height:90px" data-g="guidelines" placeholder="Например: реплики бота не оцениваются; «Нет» — действие было нужно, но пропущено">${esc(draft.guidelines || "")}</textarea></div>
           <div class="cqa-field c12"><label class="cqa-label">Секции</label>
             <div class="cqa-faint" style="font-size:12px;margin-bottom:6px">Группы критериев для промежуточных баллов по блокам («Начало диалога», «Решение»…). Короткому чек-листу не нужны.</div>
-            <div class="cqa-row">${(draft.sections || []).map((s, i) => `<span class="cqa-secchip"><input data-s="${i}" value="${esc(s.name)}"><button class="cqa-btn ghost sm" data-del-sec="${i}" aria-label="Удалить секцию">${icon.x}</button></span>`).join("")}
+            <div class="cqa-row">${(draft.sections || []).map((s, i) => `<span class="cqa-secchip"><input data-s="${i}" value="${esc(s.name)}"><button class="cqa-btn ghost sm" data-del-sec="${i}">✕</button></span>`).join("")}
               <button class="cqa-btn sm" data-add-sec>${icon.plus} Секция</button></div></div>
           <div class="cqa-field c3"><label class="cqa-label">Порог «пройден», баллов</label><input class="cqa-input" type="number" data-g="pass_threshold" value="${draft.pass_threshold ?? ""}" placeholder="нет"></div>
           <div class="cqa-field c3"><label class="cqa-label">Первая реакция оператора, сек</label><input class="cqa-input" type="number" data-g="first_response_limit_s" value="${draft.first_response_limit_s ?? 180}"></div>
@@ -134,7 +134,7 @@ export async function mount(el, ctx, [selId], top) {
         ${[...steps].sort((a, b) => b - a).map((v) => `<div class="cqa-step">
           <input class="cqa-input" type="number" style="width:70px" data-step-v="${v}" data-i="${i}" value="${v}">
           <input class="cqa-input cqa-grow" data-step-l="${v}" data-i="${i}" value="${esc(c.scale?.labels?.[String(v)] || "")}" placeholder="Когда ставится ${v}">
-          ${steps.length > 2 ? `<button class="cqa-btn ghost sm" data-step-del="${v}" data-i="${i}" aria-label="Удалить ступень">${icon.x}</button>` : ""}</div>`).join("")}
+          ${steps.length > 2 ? `<button class="cqa-btn ghost sm" data-step-del="${v}" data-i="${i}">✕</button>` : ""}</div>`).join("")}
         <button class="cqa-btn sm" data-step-add data-i="${i}">${icon.plus} Ступень</button>
       </div>` : ""}
 
@@ -297,7 +297,7 @@ export async function mount(el, ctx, [selId], top) {
     if (t.hasAttribute("data-reset")) { draft = clone(base); return renderEditor(); }
     if (t.hasAttribute("data-activate")) {
       await ctx.api.activate(base.id);
-      toast(`«${base.name}», версия ${base.version}, теперь активен — по нему идёт оценка`);
+      toast(`«${base.name}» v${base.version} теперь активен — по нему идёт оценка`);
       await ctx.refresh();
       all = await ctx.api.checklists();
       base = all.find((v) => v.id === base.id);
@@ -313,7 +313,7 @@ export async function mount(el, ctx, [selId], top) {
       body.criteria = body.criteria.map(({ autoId, ...c }) => c);
       if (!isNew) body.family_id = base.family_id;
       const saved = await ctx.api.saveChecklist(body);
-      toast(isNew ? `Чек-лист «${saved.name}» создан и активен` : `Сохранена версия ${saved.version} — она активна`);
+      toast(isNew ? `Чек-лист «${saved.name}» создан и активен` : `Сохранена версия v${saved.version} — она активна`);
       isNew = false;
       await ctx.refresh();
       all = await ctx.api.checklists();
@@ -352,7 +352,7 @@ export async function mount(el, ctx, [selId], top) {
   async function applyDialog(saved) {
     const ds = await ctx.api.datasets();
     modal({
-      title: `Оценить диалоги по «${saved.name}», версия ${saved.version}?`,
+      title: `Оценить диалоги по «${saved.name}» v${saved.version}?`,
       body: `<p style="margin-top:0">Чек-лист уже активен. Запустите оценку, чтобы увидеть результаты. Прежние оценки останутся в истории карточек.</p>
         <div class="cqa-field"><label class="cqa-label">Какие диалоги</label><select class="cqa-select" data-ds>
           ${ds.map((d) => `<option value="${esc(d.id)}">${esc(d.id)} — ${d.count} диалогов</option>`).join("")}<option value="">Все наборы</option></select></div>`,

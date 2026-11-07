@@ -1,7 +1,7 @@
 // <cqa-case dialog-id="..." api-base="..."> — карточка кейса: транскрипт + оценка + апелляции.
 // Самодостаточный компонент: его можно встроить отдельно на форму обращения в Dynamics 365.
 import { Api } from "../api.js";
-import { answerView, audioOffsets, esc, fmtOffset, fmtScore, fmtTs, icon, langTag, markOf, playerHtml, remember, remembered, scoreClass, speakerName, timeAgo, toast, wirePlayer } from "../ui.js";
+import { answerView, esc, fmtScore, fmtTs, icon, langTag, remember, remembered, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
 
 class CqaCase extends HTMLElement {
   static get observedAttributes() { return ["dialog-id", "evaluation-id"]; }
@@ -44,7 +44,9 @@ class CqaCase extends HTMLElement {
         <div class="cqa-card-h"><h3>Транскрипт</h3>${langTag(d.language)}
           <span class="cqa-chip">${d.channel === "voice call" ? "Звонок" : "Чат"}</span>
           <span class="cqa-faint" style="margin-left:auto">${d.transcript.length} реплик</span></div>
-        ${d.audio_url ? playerHtml(`${this.api.base}/api/dialogs/${encodeURIComponent(d.id)}/audio`, d.audio_url) : ""}
+        ${d.audio_url ? `<div class="cqa-audio">${icon.phone.replace("<svg", '<svg width="18"')}<div class="cqa-grow"><b>Запись звонка</b>
+          <div class="cqa-faint" style="font-size:12px">Метки «+мм:сс» у реплик — смещение от начала записи</div></div>
+          <a class="cqa-btn sm primary" href="${esc(d.audio_url)}" target="_blank" rel="noopener">${icon.play} Открыть плеер</a></div>` : ""}
         <div class="cqa-trbar"><input class="cqa-input" data-search placeholder="Поиск по транскрипту">
           <label class="cqa-switch" title="Показывать реплики бота и системные события"><input type="checkbox" data-ctx checked><i></i>Бот и система</label></div>
         <div class="cqa-card-b" data-tr>${this.renderTranscript()}</div>
@@ -56,19 +58,23 @@ class CqaCase extends HTMLElement {
 
   renderTranscript() {
     const t = this.dialog.transcript;
-    const offs = this.dialog.audio_url ? audioOffsets(t) : [];
+    const start = Date.parse(t.find((x) => /^\d{4}-/.test(x.timestamp))?.timestamp || "");
     return t.map((x, i) => {
-      const off = offs[i] != null ? fmtOffset(offs[i]) : "";
+      let off = "";
+      if (!isNaN(start) && /^\d{4}-/.test(x.timestamp)) {
+        const s = Math.max(0, Math.round((Date.parse(x.timestamp) - start) / 1000));
+        off = `+${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+      }
       return `<div class="cqa-turn ${esc(x.speaker)}" data-turn="${i}" id="cqa-turn-${i}">
         <div class="n">${i}</div>
-        <div class="bubble"><div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time title="${esc(x.timestamp)}" data-off>${esc(off || fmtTs(x.timestamp))}</time></div>
+        <div class="bubble"><div class="who">${speakerName[x.speaker] || esc(x.speaker)}<time title="${esc(x.timestamp)}">${esc(off || fmtTs(x.timestamp))}</time></div>
         <div class="txt${x.speaker === "bot" && x.text.length > 140 ? " clamp" : ""}" title="${x.speaker === "bot" && x.text.length > 140 ? "Нажмите, чтобы развернуть" : ""}">${esc(x.text)}</div></div></div>`;
     }).join("");
   }
 
   renderEmpty() {
     return `<div class="cqa-card cqa-card-b cqa-empty">
-      <p style="margin-top:0">Диалог ещё не оценён по чек-листу «${esc(this.active.name)}», версия ${this.active.version}.</p>
+      <p style="margin-top:0">Диалог ещё не оценён по чек-листу «${esc(this.active.name)}» v${this.active.version}.</p>
       <button class="cqa-btn primary" data-run>${icon.play} Оценить сейчас</button></div>`;
   }
 
@@ -81,6 +87,7 @@ class CqaCase extends HTMLElement {
     const cl = ev.checklist;
     const fr = ev.final_result;
     const ai = ev.ai_result;
+    const changed = ai.total !== fr.total;
     const others = this.dialog.evaluations.filter((e) => e.status === "done");
     const stale = cl.id !== this.active.id;
     const C = 2 * Math.PI * 64;
@@ -92,31 +99,30 @@ class CqaCase extends HTMLElement {
         <div class="cqa-card-h">
           <h3>Результат оценки</h3>
           <select class="cqa-select" data-evsel style="height:28px;font-size:12px;margin-left:auto">
-            ${others.map((e) => `<option value="${e.id}" ${e.id === ev.id ? "selected" : ""}>версия ${this.verOf(e)} · ${timeAgo(e.created_at)} · ${fmtScore(e.total)}</option>`).join("")}
+            ${others.map((e) => `<option value="${e.id}" ${e.id === ev.id ? "selected" : ""}>v${this.verOf(e)} · ${timeAgo(e.created_at)} · ${fmtScore(e.total)}</option>`).join("")}
           </select>
           <button class="cqa-btn sm" data-gt title="Сохранить финальный результат как эталон для замера точности">${icon.check} В эталон</button>
           <button class="cqa-btn sm" data-run title="Переоценить по активному чек-листу">${icon.sync} Переоценить</button>
         </div>
         <div class="cqa-card-b">
-          ${stale ? `<div class="cqa-alert warn" style="margin-bottom:12px">${icon.alert}<div>Оценка сделана по версии ${cl.version} чек-листа. Активна версия ${this.active.version} — нажмите «Переоценить», чтобы применить новый чек-лист.</div></div>` : ""}
+          ${stale ? `<div class="cqa-alert warn" style="margin-bottom:12px">${icon.alert}<div>Оценка сделана по версии v${cl.version}. Активна версия v${this.active.version} — нажмите «Переоценить», чтобы применить новый чек-лист.</div></div>` : ""}
           <div class="cqa-summary">
             <div class="cqa-gauge">
               <svg width="150" height="150"><circle cx="75" cy="75" r="64" stroke="var(--line-2)" stroke-width="12" fill="none"/>
                 <circle cx="75" cy="75" r="64" stroke="${color}" stroke-width="12" fill="none" stroke-linecap="round"
                   stroke-dasharray="${C * pct} ${C}" style="transition:stroke-dasharray .6s"/></svg>
-              <div class="val"><div><b>${fmtScore(fr.total)}</b><span>из 100</span></div></div>
+              <div class="val"><div><b>${fmtScore(fr.total)}</b><span>из 100${changed ? `<br>ИИ: ${fmtScore(ai.total)}` : ""}</span></div></div>
             </div>
             <div>
               <div class="cqa-row" style="margin-bottom:6px">
                 ${fr.passed == null ? "" : fr.passed ? `<span class="cqa-chip yes">Пройден · порог ${cl.pass_threshold}</span>` : `<span class="cqa-chip no">Не пройден · порог ${cl.pass_threshold}</span>`}
+                ${ev.case_status === "disputed" ? `<span class="cqa-chip warn">Апелляция на рассмотрении</span>` : ""}
+                ${ev.case_status === "reviewed" ? `<span class="cqa-chip na">Пересмотрен</span>` : ""}
+                ${changed ? `<span class="cqa-chip dark">Итог изменён проверяющим: ${fmtScore(ai.total)} → ${fmtScore(fr.total)}</span>` : ""}
               </div>
               <div style="font-size:13.5px">${esc(ev.summary)}</div>
+              <div class="cqa-faint" style="font-size:12px;margin-top:6px">${esc(cl.name)} · v${cl.version} · ${timeAgo(ev.created_at)}</div>
             </div>
-          </div>
-          <div class="cqa-steps">
-            <div><span>Оценка ИИ</span><b>${fmtScore(ai.total)}</b></div><i>→</i>
-            <div><span>Решение проверяющего</span><b>${esc(this.decision())}</b></div><i>→</i>
-            <div class="fin"><span>Финальный результат</span><b>${fmtScore(fr.total)}</b></div>
           </div>
           ${fr.critical_errors.length ? `<div class="cqa-alert crit" style="margin-top:12px">${icon.flag}<div><b>Грубая ошибка</b>${cl.critical_mode === "zero" ? " — итог обнулён" : " — отмечена отдельно, итог не обнуляется"}:
             ${fr.critical_errors.map((id) => {
@@ -131,8 +137,8 @@ class CqaCase extends HTMLElement {
             const row = fr.criteria.find((r) => r.criterion_id === c.id) || {};
             const v = answerView(c, f);
             const open = (ev.appeals || []).some((x) => x.criterion_id === c.id && x.status === "open");
-            return `<tr data-jump="${esc(c.id)}" class="s-${markOf(c, f)}"><td class="n">${i + 1}</td>
-              <td>${esc(c.name)}${a.votes?.length > 1 && a.agreement < 1 ? `<span class="w" title="Прогоны разошлись: ${esc(a.votes.join(", "))}">${icon.alert.replace("<svg", '<svg width="11" height="11"')} ${Math.round(a.agreement * a.votes.length)}/${a.votes.length}</span>` : ""}
+            return `<tr data-jump="${esc(c.id)}"><td class="n">${i + 1}</td>
+              <td>${esc(c.name)}
                 ${ev.overrides?.[c.id] ? `<span class="cqa-chip na" style="height:18px;margin-left:6px">изменено</span>` : ""}${open ? `<span class="cqa-chip warn" style="height:18px;margin-left:6px">апелляция</span>` : ""}</td>
               <td class="a"><span class="cqa-chip ${v.cls}">${esc(v.label)}</span></td>
               <td class="p">${c.type === "flag" ? "—" : f.na ? "N/A" : `<b>${fmtScore(row.points)}</b> / ${fmtScore(row.effective_weight)}`}</td></tr>`;
@@ -146,16 +152,6 @@ class CqaCase extends HTMLElement {
 
   verOf(e) {
     return e.checklist_id === this.ev?.checklist_id ? this.ev.checklist_version : e.checklist_id === this.active.id ? this.active.version : e.checklist_version ?? "?";
-  }
-
-  // Что решил проверяющий — среднее звено «Оценка ИИ → решение → финал» (ТЗ: «исходная оценка, решение и финальный результат»)
-  decision() {
-    const appeals = this.ev.appeals || [];
-    const n = Object.keys(this.ev.overrides || {}).length;
-    if (appeals.some((x) => x.status === "open")) return "апелляция на рассмотрении";
-    if (n) return n === 1 ? "изменён 1 критерий" : `изменено критериев: ${n}`;
-    if (appeals.length) return "оценка ИИ подтверждена";
-    return "апелляций нет";
   }
 
   crit(id) { return this.ev.checklist.criteria.find((c) => c.id === id); }
@@ -179,7 +175,7 @@ class CqaCase extends HTMLElement {
     const evTurns = (a.evidence || []).map((e) => e.turn);
     const canAppeal = c.appealable !== false && !open && ev.status === "done";
 
-    return `<div class="cqa-crit s-${markOf(c, f)}" data-crit="${esc(c.id)}" data-ev="${evTurns.join(",")}" data-range="${a.checked_range ? `${a.checked_range.from_turn}-${a.checked_range.to_turn}` : ""}">
+    return `<div class="cqa-crit s-${f.critical_error ? "crit" : v.cls || "none"}" data-crit="${esc(c.id)}" data-ev="${evTurns.join(",")}" data-range="${a.checked_range ? `${a.checked_range.from_turn}-${a.checked_range.to_turn}` : ""}">
       <div class="cqa-crit-h" data-focus>
         <div class="num">${i + 1}</div>
         <div style="min-width:0">
@@ -191,7 +187,6 @@ class CqaCase extends HTMLElement {
         <div class="res">
           <span class="cqa-chip ${v.cls}">${esc(v.label)}</span>
           <span class="cqa-pts">${c.type === "flag" ? "без баллов" : f.na ? "вес перераспределён" : `<b>${fmtScore(row.points)}</b> / ${fmtScore(row.effective_weight)}`}</span>
-          ${a.votes?.length > 1 ? `<span class="cqa-faint" style="font-size:11px" title="Ответы независимых прогонов: ${esc(a.votes.join(", "))}">консенсус ${Math.round(a.agreement * a.votes.length)}/${a.votes.length}</span>` : ""}
         </div>
       </div>
       <div class="cqa-crit-b">
@@ -204,7 +199,7 @@ class CqaCase extends HTMLElement {
             ${e.verified ? "" : `<span class="unver"> · цитата заменена текстом реплики</span>`}</div></div>`).join("")}</div>` : ""}
         ${a.checked_range && !a.na ? `<button class="cqa-btn ghost sm" data-range-btn>Проверенный участок: реплики [${a.checked_range.from_turn}]–[${a.checked_range.to_turn}]</button>` : ""}
         ${a.needs_review ? `<span class="cqa-chip warn">Низкая уверенность модели — стоит проверить</span>` : ""}
-        ${ov ? `<div class="cqa-diff">${icon.scale.replace("<svg", '<svg width="16"')}<div>Исходная оценка ИИ: <b>${esc(answerView(c, a).label)}</b> → решение проверяющего: <b>${esc(v.label)}</b><br><span class="cqa-muted">${esc(ov.reason)}</span></div></div>` : ""}
+        ${ov ? `<div class="cqa-diff">${icon.scale.replace("<svg", '<svg width="16"')}<div>Исходная оценка ИИ: <b>${esc(answerView(c, a).label)}</b> → решение проверяющего: <b>${esc(v.label)}</b>${ov.manual_points != null ? `, баллы вручную: <b>${fmtScore(ov.manual_points)} из ${c.weight}</b>` : ""}<br><span class="cqa-muted">${esc(ov.reason)}</span></div></div>` : ""}
         ${appeals.map((x) => `<div class="cqa-hist ${x.status}">
           <b>${x.status === "open" ? "Апелляция на рассмотрении" : x.decision === "confirm" ? "Апелляция отклонена — оценка подтверждена" : "Апелляция удовлетворена — оценка изменена"}</b>
           <span class="cqa-faint"> · ${esc(x.author || "Оператор")} · ${timeAgo(x.created_at)}</span>
@@ -241,7 +236,6 @@ class CqaCase extends HTMLElement {
           : esc(x.text);
       });
     };
-    wirePlayer(this.querySelector(".cqa-transcript"), this.dialog.transcript);
     search.addEventListener("input", applyFilter);
     ctxToggle.addEventListener("change", applyFilter);
     this.addEventListener("click", this.onClick ||= (e) => this.handleClick(e));

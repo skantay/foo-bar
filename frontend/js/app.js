@@ -103,7 +103,7 @@ class CqaApp extends HTMLElement {
       b.textContent = open.length;
       b.hidden = !open.length;
       this.querySelector("[data-foot]").innerHTML = `
-        <div>Чек-лист: <b>${esc(checklist.name)}</b> · версия ${checklist.version}</div>
+        <div>Чек-лист: <b>${esc(checklist.name)}</b> · v${checklist.version}</div>
         ${health.llm ? "" : health.backend === "mock"
           ? `<div style="margin-top:6px;color:#ffd27a">Демо-режим: оценки ненастоящие</div>`
           : `<div style="margin-top:6px;color:#ffd27a">Модель не подключена: задайте ANTHROPIC_API_KEY или установите Claude Code</div>`}`;

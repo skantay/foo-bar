@@ -64,12 +64,15 @@ def compute(checklist: dict, answers: dict[str, dict]) -> dict:
             lo, hi = value_range(c)
             if applicable(c) and app_weight > 0:
                 eff = float(c["weight"]) / app_weight * 100
-                ratio = (float(a["value"]) - lo) / (hi - lo) if hi > lo else 0.0
+                if a.get("manual_ratio") is not None:  # проверяющий задал баллы вручную
+                    ratio = min(max(float(a["manual_ratio"]), 0.0), 1.0)
+                else:
+                    ratio = (float(a["value"]) - lo) / (hi - lo) if hi > lo else 0.0
                 pts = ratio * eff
                 earned += pts
                 rows.append({"criterion_id": c["id"], "weight": c["weight"],
                              "effective_weight": round(eff, 2), "ratio": round(ratio, 4),
-                             "points": round(pts, 2), "na": False})
+                             "points": round(pts, 2), "na": False, "manual": a.get("manual_ratio") is not None})
             else:
                 rows.append({"criterion_id": c["id"], "weight": c["weight"],
                              "effective_weight": 0, "ratio": None, "points": 0, "na": True})
