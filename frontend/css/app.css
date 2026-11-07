@@ -313,12 +313,21 @@ mark.cqa-q { background: rgba(245, 166, 35, .35); color: inherit; border-radius:
 .cqa-skel { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--line-2), #f7f9f8, var(--line-2)); background-size: 200% 100%; animation: cqa-sk 1.2s infinite; }
 @keyframes cqa-sk { to { background-position: -200% 0; } }
 
+/* колонки grid не сжимаются уже содержимого (min-width: auto) — на узком экране транскрипт уезжал за край */
+.cqa-case > *, .cqa-appeals > *, .cqa-cl-layout > *, .cqa-grid > *, .cqa-main { min-width: 0; }
 @media (max-width: 1100px) {
-  .cqa-case, .cqa-appeals, .cqa-cl-layout { grid-template-columns: 1fr; }
+  .cqa-case, .cqa-appeals, .cqa-cl-layout { grid-template-columns: minmax(0, 1fr); }
   .cqa-transcript { position: static; max-height: 520px; }
 }
 @media (max-width: 760px) {
-  .cqa-shell { grid-template-columns: 1fr; }
+  .cqa-shell { grid-template-columns: minmax(0, 1fr); }
+  .cqa-trbar { flex-wrap: wrap; }
+  .cqa-card-h { flex-wrap: wrap; row-gap: 8px; }  /* версия, «В эталон», «Переоценить» не держат ширину карточки */
+  .cqa-summary { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .cqa-sc td { overflow-wrap: anywhere; hyphens: auto; }  /* «клиентоориентированность» не распирает таблицу */
+  .cqa-sc .a { white-space: normal; }
+  .cqa-sc .a .cqa-chip { white-space: normal; text-align: center; }
+  .cqa-sc .p { width: auto; }
   .cqa-side { display: none; }
   .cqa-page { padding: 16px; }
   .cqa-top { padding: 12px 16px; }
@@ -816,3 +825,16 @@ cqa-app .cqa-shell::after {
 }
 @keyframes cqa-thread { from { background-position: 0 0; } to { background-position: 0 100%; } }
 @media (max-width: 760px) { cqa-app .cqa-shell::after { display: none; } }
+
+/* узкий экран: фон-знак считается от высоты экрана и вылезает за ширину — прячем */
+@media (max-width: 760px) {
+  cqa-app .cqa-brandmark { display: none; }
+  cqa-app .cqa-top { flex-wrap: wrap; gap: 10px; }
+  cqa-app .cqa-top-right { flex-wrap: wrap; }
+  cqa-app .cqa-tabs { flex-wrap: wrap; }
+  /* сетки страниц заданы inline-стилем (2fr 1fr и т.п.) — на телефоне в одну колонку */
+  cqa-app .cqa-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  cqa-app .cqa-crit-row { grid-template-columns: minmax(0, 1fr) 96px 56px !important; }
+  /* широкие таблицы листаются внутри своей карточки, а не тянут страницу */
+  cqa-app table.cqa-table { display: block; overflow-x: auto; }
+}

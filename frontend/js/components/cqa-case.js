@@ -131,7 +131,10 @@ class CqaCase extends HTMLElement {
             </div>
           </div>
           ${fr.critical_errors.length ? `<div class="cqa-alert crit" style="margin-top:12px">${icon.flag}<div><b>Грубая ошибка</b>${cl.critical_mode === "zero" ? " — итог обнулён" : " — отмечена отдельно, итог не обнуляется"}:
-            ${fr.critical_errors.map((id) => `<div>· ${esc(this.crit(id).name)}: ${this.linkify(this.final(id).critical_reason || this.final(id).explanation || "")}</div>`).join("")}</div></div>` : ""}
+            ${fr.critical_errors.map((id) => {
+              const name = this.crit(id).name, why = this.final(id).critical_reason || this.final(id).explanation || "";
+              return `<div>· ${why.startsWith(name) ? "" : `${esc(name)}: `}${this.linkify(why)}</div>`;
+            }).join("")}</div></div>` : ""}
           ${fr.sections.length ? `<div class="cqa-sections">${fr.sections.map((s) => `<div class="cqa-sec"><div class="t">${esc(s.name)}</div>
             <div class="p">${s.na ? "N/A" : fmtScore(s.score)}</div><div class="cqa-progress"><i style="width:${s.score ?? 0}%"></i></div></div>`).join("")}</div>` : ""}
           <table class="cqa-sc">${cl.criteria.map((c, i) => {
