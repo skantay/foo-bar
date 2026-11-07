@@ -154,6 +154,17 @@
    },
    "source": "synthetic",
    "note": "противоречивые ответы"
+  },
+  {
+   "conversation_id": "syn-ru-13",
+   "criteria": {
+    "contact": "Да",
+    "identification": "Да",
+    "closing": "Да",
+    "gross_errors": "Нет"
+   },
+   "source": "synthetic",
+   "note": "ПДн в тексте: ИИН, телефон, карта, имя оператора"
   }
  ]
 }

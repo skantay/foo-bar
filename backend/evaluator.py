@@ -20,6 +20,7 @@ from datetime import datetime
 
 import anthropic
 
+import pii
 from scoring import is_flag, normalize_value, scale_steps, value_range
 
 log = logging.getLogger("cqa.evaluator")
@@ -30,6 +31,8 @@ SAMPLES = max(1, int(os.getenv("CQA_SAMPLES", "3")))
 # api — Anthropic API по ключу; cli — локальный `claude -p` (Claude Code); mock — заглушка; auto — что доступно
 BACKEND = os.getenv("CQA_BACKEND", "auto")
 CLI_PARALLEL = int(os.getenv("CQA_CLI_PARALLEL", "6"))
+# маскировать персональные данные перед отправкой в модель (1/0)
+PII_MASK = os.getenv("CQA_PII_MASK", "1") != "0"
 
 # $ за 1M токенов: input, output, cache write (5m), cache read
 PRICING = {
@@ -48,6 +51,7 @@ SYSTEM_RULES = """Ты — опытный эксперт отдела контр
 - Оценивается только OPERATOR. BOT и SYSTEM — контекст: что клиент уже сообщил боту, эскалация, подтверждение личности, закрытие чата. Действия бота не засчитываются оператору; но детали, которые клиент сообщил боту, оператор должен учитывать.
 - Диалоги на русском, казахском и английском; транскрипты звонков могут содержать ошибки распознавания — оценивай смысл.
 - Блок «ФАКТЫ О ВРЕМЕНИ» посчитан программой по меткам времени — опирайся на него, а не пересчитывай сам.
+- Персональные данные заменены метками: [ИМЯ_ОПЕРАТОРА_1], [ИМЯ_КЛИЕНТА_1], [PHONE_1], [IIN_1], [CARD_1], [IBAN_1], [EMAIL_1]. Метка значит, что в реплике было это значение: «Меня зовут [ИМЯ_ОПЕРАТОРА_1]» — оператор представился; [CARD_1] в реплике оператора — номер карты прозвучал. В цитатах сохраняй метки как есть.
 
 Как отвечать по каждому критерию:
 - binary: value 1 = «Да», 0 = «Нет».
@@ -483,12 +487,26 @@ def mock_raw(dialog: dict, checklist: dict, seed: int) -> dict:
     return {"summary": "Мок-оценка: подключите ANTHROPIC_API_KEY для реальной оценки.", "criteria": crit}
 
 
+def unmask_answers(answers: dict, mapping: dict) -> dict:
+    """Метки ПДн в ответе модели → исходные значения (для показа человеку)."""
+    if not mapping:
+        return answers
+    for a in answers.values():
+        for k in ("explanation", "na_reason", "critical_reason"):
+            a[k] = pii.unmask(a.get(k, ""), mapping)
+        for e in a.get("evidence") or []:
+            e["quote"] = pii.unmask(e["quote"], mapping)
+    return answers
+
+
 async def evaluate(dialog: dict, checklist: dict) -> dict:
     """Возвращает готовые answers (после проверки и голосования) и метаданные вызова."""
     started = time.time()
+    # в модель уходит только замаскированный текст; цитаты сверяются с ним же
+    sent, mapping, counts = pii.mask_dialog(dialog) if PII_MASK else (dialog, {}, Counter())
     if has_llm():
         call = call_cli if backend() == "cli" else call_llm
-        results = await asyncio.gather(*(call(dialog, checklist) for _ in range(SAMPLES)), return_exceptions=True)
+        results = await asyncio.gather(*(call(sent, checklist) for _ in range(SAMPLES)), return_exceptions=True)
         ok = [r for r in results if not isinstance(r, Exception)]
         if not ok:
             raise results[0]
@@ -499,19 +517,24 @@ async def evaluate(dialog: dict, checklist: dict) -> dict:
         usage = {k: sum(r["usage"][k] for r in ok) for k in ok[0]["usage"]}
         cost = round(sum(r["cost_usd"] for r in ok), 5) if backend() == "cli" else cost_usd(MODEL, usage)
     else:
-        ok = [{"raw": mock_raw(dialog, checklist, i)} for i in range(SAMPLES)]
+        ok = [{"raw": mock_raw(sent, checklist, i)} for i in range(SAMPLES)]
         model, usage, cost = "mock", {}, 0.0
     runs, warnings = [], []
     for r in ok:
-        a, w = postprocess(checklist, dialog, r["raw"])
+        a, w = postprocess(checklist, sent, r["raw"])
         runs.append(a)
         warnings += [x for x in w if x not in warnings]
     if len(ok) < SAMPLES:
         warnings.append(f"Успешных прогонов {len(ok)} из {SAMPLES}")
+    orig = dialog["transcript"]
     return {
-        "answers": vote(checklist, runs),
+        "answers": unmask_answers(vote(checklist, runs), mapping),
+        "pii": {"enabled": PII_MASK, "counts": dict(counts),
+                # что именно ушло в модель — только изменённые реплики
+                "masked_turns": [{"turn": i, "text": t["text"]} for i, t in enumerate(sent["transcript"])
+                                 if t["text"] != orig[i].get("text", "")]},
         "warnings": warnings,
-        "summary": ok[0]["raw"].get("summary", ""),
+        "summary": pii.unmask(ok[0]["raw"].get("summary", ""), mapping),
         "raw": [r["raw"] for r in ok],
         "samples": len(ok),
         "model": model,

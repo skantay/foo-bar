@@ -357,7 +357,7 @@ async def run_one(job: dict, dialog: dict, checklist: dict, sem: asyncio.Semapho
             e.update(status="done", model=res["model"], usage=res["usage"], cost_usd=res["cost_usd"],
                      latency_s=res["latency_s"], summary=res["summary"], samples=res["samples"],
                      timing_facts=res["timing_facts"], raw=res["raw"],
-                     answers=answers, warnings=res["warnings"], overrides={})
+                     answers=answers, warnings=res["warnings"], pii=res["pii"], overrides={})
             e["ai_result"] = scoring.compute(checklist, answers)
             recompute(e, checklist)
             job["cost_usd"] = round(job["cost_usd"] + res["cost_usd"], 4)

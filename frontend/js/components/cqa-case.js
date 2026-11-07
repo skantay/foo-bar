@@ -3,6 +3,9 @@
 import { Api } from "../api.js";
 import { answerView, esc, fmtScore, fmtTs, icon, langTag, money, scoreClass, speakerName, timeAgo, toast } from "../ui.js";
 
+const PII_LABEL = { PHONE: "телефон", IIN: "ИИН", CARD: "карта", IBAN: "IBAN", EMAIL: "email",
+  "ИМЯ_ОПЕРАТОРА": "имя оператора", "ИМЯ_КЛИЕНТА": "имя клиента" };
+
 class CqaCase extends HTMLElement {
   static get observedAttributes() { return ["dialog-id", "evaluation-id"]; }
 
@@ -145,6 +148,10 @@ class CqaCase extends HTMLElement {
           }).join("")}</table>
           ${ev.timing_facts?.length ? `<div class="cqa-alert info" style="margin-top:12px;padding:8px 12px"><div><b>Время ответа</b> (посчитано по меткам)
             ${ev.timing_facts.map((t) => `<div>${this.linkify(t)}</div>`).join("")}</div></div>` : ""}
+          ${ev.pii?.enabled ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">🔒 Персональные данные замаскированы перед отправкой в модель: ${
+            Object.entries(ev.pii.counts || {}).map(([k, n]) => `${esc(PII_LABEL[k] || k)} × ${n}`).join(", ") || "не найдено"}</summary>
+            ${ev.pii.masked_turns?.length ? `<div style="margin:6px 0 0;font-size:12.5px">Так эти реплики увидела модель:</div>
+            <ul style="margin:4px 0 0;font-size:12.5px">${ev.pii.masked_turns.map((t) => `<li>[${t.turn}] ${esc(t.text)}</li>`).join("")}</ul>` : ""}</details>` : ""}
           ${ev.warnings?.length ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Предупреждения валидации (${ev.warnings.length})</summary>
             <ul style="margin:6px 0 0;font-size:12.5px">${ev.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>` : ""}
           ${ev.raw?.length ? `<details style="margin-top:8px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Сырой ответ модели (${ev.raw.length})</summary>
