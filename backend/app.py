@@ -697,8 +697,11 @@ def accuracy(checklist_id: str | None = None):
                 p["abs_err"] += 1
             if not ok:
                 row["mismatches"].append({"criterion_id": c["id"], "ai": answer_label(c, a), "gt": gt["criteria"].get(c["id"])})
+        # итог по эталону считаем, только если размечены все балльные критерии:
+        # по части критериев он несравним с итогом модели
         gt_total = gt.get("total")
-        if gt_total is None and gt_answers:
+        scored_ids = {c["id"] for c in checklist["criteria"] if not scoring.is_flag(c)}
+        if gt_total is None and scored_ids <= gt_answers.keys():
             gt_total = scoring.compute(checklist, gt_answers)["total"]
         row["gt_total"] = gt_total
         if gt_total is not None and row["ai_total"] is not None:
@@ -733,6 +736,15 @@ def seed():
         base = json.loads((Path(__file__).parent / "checklist_default.json").read_text("utf-8"))
         save_checklist(base)
         log.info("seeded default checklist")
+    # задачи в памяти не переживают рестарт: незавершённые помечаем прерванными, иначе они висят «running»
+    for j in db.all("jobs"):
+        if j.get("status") == "running":
+            j.update(status="interrupted", finished_at=db.now())
+            db.put("jobs", j)
+    for e in db.all("evaluations"):
+        if e.get("status") == "running":
+            e.update(status="error", error="Оценка прервана перезапуском сервера")
+            db.put("evaluations", e)
     dev = ROOT / "data" / "dev.json"
     if not db.all("dialogs") and dev.exists():
         n = len(import_payload(json.loads(dev.read_text("utf-8")), "DEV", "api"))

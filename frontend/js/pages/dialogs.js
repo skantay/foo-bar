@@ -194,7 +194,7 @@ export async function mount(el, ctx, _params, top) {
     const pct = Math.round((j.finished / j.total) * 100);
     $("[data-job]").innerHTML = `<div class="cqa-job">
       ${j.status === "running" ? `<span class="cqa-spin"></span>` : icon.check.replace("<svg", '<svg width="16"')}
-      <b>${j.status === "running" ? "Идёт оценка" : "Оценка завершена"}</b>
+      <b>${j.status === "running" ? "Идёт оценка" : j.status === "interrupted" ? "Оценка прервана перезапуском — запустите заново" : "Оценка завершена"}</b>
       <span>${j.finished} / ${j.total}${j.failed.length ? ` · ошибок ${j.failed.length}` : ""}</span>
       <div class="cqa-progress"><i style="width:${pct}%"></i></div>
       <span class="cqa-muted">v${j.checklist_version} · ${esc(j.model)} · ${money(j.cost_usd)}</span>
