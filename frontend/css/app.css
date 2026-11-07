@@ -373,7 +373,8 @@ mark.cqa-hit { background: #fff27a; color: inherit; border-radius: 2px; }
 .cqa-crit-row.link { cursor: pointer; }
 .cqa-crit-row.link:hover { background: var(--surface-2); }
 cqa-app .cqa-table td { white-space: nowrap; }
-cqa-app .cqa-table td .cqa-preview { white-space: nowrap; max-width: 340px; }
+cqa-app .cqa-table td .cqa-preview { white-space: nowrap; max-width: clamp(160px, 17vw, 340px); }
+cqa-app .cqa-table th.num, cqa-app .cqa-table td.num { padding-left: 6px; padding-right: 6px; text-align: center; }
 cqa-app .cqa-toolbar .cqa-select { max-width: 230px; }
 
 /* ---------- редактор чек-листа v2 ---------- */
@@ -874,3 +875,8 @@ cqa-app .cqa-crit.s-crit .num { background: var(--crit); color: #fff; }
 cqa-app .cqa-appeals.empty { display: block; }
 cqa-app .cqa-appeals.empty > .cqa-card { background: none; border: 0; box-shadow: none; }
 cqa-app .cqa-appeals.empty .cqa-empty { text-align: center; padding: 72px 16px; }
+/* реестр на ноутбуке 1280–1366: таблица целиком, без горизонтальной прокрутки */
+@media (max-width: 1366px) {
+  cqa-app .cqa-table th, cqa-app .cqa-table td { padding-left: 10px; padding-right: 10px; }
+  cqa-app .cqa-table td .cqa-preview { max-width: 150px; }
+}

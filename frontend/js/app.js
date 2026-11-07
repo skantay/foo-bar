@@ -58,7 +58,7 @@ class CqaApp extends HTMLElement {
       </aside>
       <main class="cqa-main">
         <div class="cqa-brandmark" aria-hidden="true">${BRAND_MARK}</div>
-        <header class="cqa-top"><div><h1></h1><div class="cqa-sub"></div></div><div class="cqa-top-right" data-top></div></header>
+        <header class="cqa-top"><button class="cqa-btn sm cqa-back" data-back hidden title="Вернуться на предыдущую страницу">${icon.back} Назад</button><div><h1></h1><div class="cqa-sub"></div></div><div class="cqa-top-right" data-top></div></header>
         <div class="cqa-page" data-page></div>
       </main>
     </div>`;
@@ -66,6 +66,7 @@ class CqaApp extends HTMLElement {
     window.addEventListener("hashchange", () => this.route());
     this.refreshMeta().then(() => this.route());
     this.querySelector("[data-sidejob]").onclick = () => this.ctx.nav("#/dialogs");
+    this.querySelector("[data-back]").onclick = () => history.back();
     this.pollJobs();
   }
 
@@ -114,6 +115,11 @@ class CqaApp extends HTMLElement {
   async route() {
     const h = location.hash || "#/";
     const r = ROUTES.find((x) => x.re.test(h)) || ROUTES[ROUTES.length - 1];
+    // «Назад» — по истории переходов внутри приложения; на первой открытой странице кнопки нет
+    const trail = (this.trail ||= []);
+    if (trail.length > 1 && trail[trail.length - 2] === h) trail.pop();
+    else if (trail[trail.length - 1] !== h) trail.push(h);
+    this.querySelector("[data-back]").hidden = trail.length < 2;
     const dec = (x) => { try { return decodeURIComponent(x ?? ""); } catch { return x; } };
     const params = (h.match(r.re) || []).slice(1).map(dec);
     this.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("on", a.dataset.nav === r.nav));
