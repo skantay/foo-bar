@@ -185,3 +185,28 @@ def test_ground_truth_in_results_json_format(evaluated):
     assert acc["criteria"]["needs"]["n"] == 1
     row = next(d for d in acc["dialogs"] if d["conversation_id"] == "t-ru-001")
     assert row["gt_total"] == 87.5
+
+
+def test_official_score_not_zeroed_and_ignores_manual_points(evaluated, default_checklist):
+    """Appendix: final_score выводится из value критериев и не обнуляется флагом грубой ошибки."""
+    base = evaluated.get("/api/results", params={"dataset": "TEST"}).json()["document"]["results"]
+    ev = latest_eval(evaluated, "t-ru-001")
+    ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "contact",
+                                              "comment": "x"}).json()
+    evaluated.post(f"/api/appeals/{ap['id']}/decision",
+                   json={"decision": "change", "value": 1, "manual_points": 5, "reason": "частично"})
+    ap = evaluated.post("/api/appeals", json={"evaluation_id": ev["id"], "criterion_id": "gross_errors",
+                                              "comment": "x"}).json()
+    evaluated.post(f"/api/appeals/{ap['id']}/decision", json={"decision": "change", "value": 1, "reason": "оскорбление"})
+    cl = evaluated.get("/api/checklists/active").json()
+    db.put("checklists", {**cl, "critical_mode": "zero"})
+    app_module._cl_cache.clear()
+    rec = next(r for r in evaluated.get("/api/results", params={"dataset": "TEST"}).json()["document"]["results"]
+               if r["conversation_id"] == "t-ru-001")
+    contact = next(c for c in rec["criteria"] if c["criterion_id"] == "contact")
+    old = next(r for r in base if r["conversation_id"] == "t-ru-001")
+    assert contact["value"] is True and rec["score"]["critical_flag"] is True
+    old_contact = next(c for c in old["criteria"] if c["criterion_id"] == "contact")["value"]
+    if old_contact is True:  # те же value → тот же итог, несмотря на ручные баллы и режим zero
+        assert rec["score"]["final_score"] == old["score"]["final_score"]
+    assert rec["score"]["final_score"] > 0

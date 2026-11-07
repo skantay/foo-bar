@@ -710,8 +710,11 @@ def official_record(d: dict, e: dict | None, checklist: dict) -> dict:
                          "rationale": re.sub(r"\[(\d+)\]", lambda m: f"[{int(m.group(1)) + 1}]", text),
                          "evidence_turns": turns})
     critical = next((x["value"] for x in criteria if x["criterion_id"] == "critical"), None)
+    # Итог по Appendix выводится из value критериев: без ручных баллов апелляции
+    # и без обнуления за грубую ошибку («флаг не обнуляет итог автоматически»).
+    score = scoring.compute(checklist, {k: {**a, "manual_ratio": None} for k, a in fa.items()})["raw_total"]
     return {"conversation_id": d["id"], "status": "ok", "criteria": criteria,
-            "score": {"final_score": e["final_result"]["total"],
+            "score": {"final_score": score,
                       "critical_flag": bool(critical) if critical is not None else bool(e["final_result"]["critical_errors"])}}
 
 
