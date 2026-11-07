@@ -23,6 +23,8 @@ export const icon = {
   up: P('<path d="M12 19V5M6 11l6-6 6 6"/>'),
   down: P('<path d="M12 5v14M6 13l6 6 6-6"/>'),
   code: P('<path d="m8 8-4 4 4 4M16 8l4 4-4 4"/>'),
+  x: P('<path d="M6 6l12 12M18 6 6 18"/>'),
+  lock: P('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
 };
 
 export const scoreClass = (v) => (v == null ? "none" : v >= 80 ? "hi" : v >= 60 ? "mid" : "lo");
@@ -99,7 +101,7 @@ export function modal({ title, body, actions = [] }) {
   const host = document.querySelector("cqa-app") || document.body;
   const bg = document.createElement("div");
   bg.className = "cqa-modal-bg";
-  bg.innerHTML = `<div class="cqa-modal"><div class="cqa-card-h"><h3>${esc(title)}</h3><button class="cqa-btn ghost sm cqa-grow-0" data-x style="margin-left:auto">✕</button></div>
+  bg.innerHTML = `<div class="cqa-modal"><div class="cqa-card-h"><h3>${esc(title)}</h3><button class="cqa-btn ghost sm cqa-grow-0" data-x style="margin-left:auto" aria-label="Закрыть">${icon.x}</button></div>
     <div class="cqa-card-b">${body}</div>
     <div class="cqa-modal-f">${actions.map((a, i) => `<button class="cqa-btn ${a.cls || ""}" data-a="${i}">${esc(a.label)}</button>`).join("")}</div></div>`;
   const close = () => bg.remove();

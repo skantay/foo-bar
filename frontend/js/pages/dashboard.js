@@ -1,9 +1,9 @@
-import { esc, fmtScore, icon, langTag, money, scoreClass } from "../ui.js";
+import { esc, fmtScore, icon, langTag, scoreClass } from "../ui.js";
 
 export async function mount(el, ctx, _params, top) {
   const s = await ctx.api.stats(ctx.checklist?.id);
   ctx.setTitle("Обзор качества", `${s.checklist.name} · версия ${s.checklist.version}`);
-  top.innerHTML = `<a class="cqa-btn primary" href="#/dialogs">${icon.chat} К диалогам</a>`;
+  top.innerHTML = "";
 
   const passRate = s.evaluated && s.passed != null ? Math.round((s.passed / s.evaluated) * 100) : null;
   const maxBar = Math.max(1, ...s.distribution);
@@ -16,7 +16,6 @@ export async function mount(el, ctx, _params, top) {
       ${s.passed == null ? "" : kpi("Прошли порог", passRate == null ? "—" : `${passRate}<small>%</small>`, `${s.passed} кейсов`)}
       ${kpi("Грубые ошибки", s.critical, "кейсов с критичным нарушением", s.critical ? "lo" : "")}
       ${kpi("Открытые апелляции", s.open_appeals, `<a href="#/appeals">к очереди проверяющего →</a>`)}
-      ${kpi("Стоимость оценки", money(s.avg_cost_usd), s.avg_latency_s != null ? `≈ ${s.avg_latency_s} с на диалог` : "")}
     </div>
     <div class="cqa-grid" style="grid-template-columns: 2fr 1fr">
       <div class="cqa-card">
@@ -29,7 +28,7 @@ export async function mount(el, ctx, _params, top) {
             const tot = c.full + c.partial + c.zero + c.na || 1;
             const pct = (n) => (n / tot) * 100;
             return `<div class="cqa-crit-row link" data-crit="${esc(id)}" title="Показать диалоги, где критерий провален">
-              <div><div style="font-weight:600">${esc(c.name)}</div><div class="cqa-faint cqa-mono">${esc(id)}</div></div>
+              <div style="font-weight:600">${esc(c.name)}</div>
               <div class="cqa-stack" title="Да ${c.full} · частично ${c.partial} · нет ${c.zero} · N/A ${c.na}">
                 <i style="width:${pct(c.full)}%;background:var(--yes)"></i><i style="width:${pct(c.partial)}%;background:var(--part)"></i>
                 <i style="width:${pct(c.zero)}%;background:var(--no)"></i><i style="width:${pct(c.na)}%;background:var(--na)"></i></div>

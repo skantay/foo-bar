@@ -167,7 +167,7 @@ export async function mount(el, ctx, _params, top) {
           <label class="cqa-radio"><input type="radio" name="sc" value="missing" ${selected.size ? "" : "checked"}><span>Только неоценённые по этой версии ${scope} (${missing})</span></label>
           <label class="cqa-radio"><input type="radio" name="sc" value="all"><span>Все диалоги ${scope} — переоценить заново</span></label>
         </div>
-        <p class="cqa-muted" style="margin-bottom:0">Модель: <b>${esc(ctx.health?.model)}</b>. Оценки сохраняются с привязкой к версии чек-листа.</p>`,
+        <p class="cqa-muted" style="margin-bottom:0">Оценки сохраняются с привязкой к версии чек-листа.</p>`,
       actions: [{ label: "Отмена" }, {
         label: "Запустить", cls: "primary",
         onClick: async (m) => {

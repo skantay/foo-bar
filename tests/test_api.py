@@ -119,11 +119,6 @@ def test_scale_steps_normalised_on_save(client):
     assert s["steps"] == [0, 5, 10] and s["min"] == 0 and s["max"] == 10
 
 
-def test_draft_criterion_without_model_fails_gracefully(client):
-    r = client.post("/api/checklists/draft-criterion", json={"text": "поздоровался ли оператор"})
-    assert r.status_code == 502 and "вручную" in r.json()["detail"]
-
-
 # ---------- оценка ----------
 
 def test_run_evaluation_job(evaluated):

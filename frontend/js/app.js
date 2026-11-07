@@ -102,8 +102,7 @@ class CqaApp extends HTMLElement {
       b.textContent = open.length;
       b.hidden = !open.length;
       this.querySelector("[data-foot]").innerHTML = `
-        <div>Модель: <b>${esc(health.model)}</b>${health.llm ? ` · effort ${esc(health.effort)} · ×${health.samples}` : ""}</div>
-        <div style="margin-top:4px">Чек-лист: <b>${esc(checklist.name)}</b> · v${checklist.version}</div>
+        <div>Чек-лист: <b>${esc(checklist.name)}</b> · версия ${checklist.version}</div>
         ${health.llm ? "" : health.backend === "mock"
           ? `<div style="margin-top:6px;color:#ffd27a">Демо-режим: оценки ненастоящие (CQA_BACKEND=mock)</div>`
           : `<div style="margin-top:6px;color:#ffd27a">Модель не подключена: задайте ANTHROPIC_API_KEY или установите Claude Code</div>`}`;

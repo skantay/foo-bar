@@ -400,18 +400,6 @@ def save_checklist(body: dict = Body(...)):
     return db.put("checklists", doc)
 
 
-@app.post("/api/checklists/draft-criterion")
-async def draft_criterion(body: dict = Body(...)):
-    """ИИ-помощник: критерий из описания своими словами."""
-    text = (body.get("text") or "").strip()
-    if len(text) < 3:
-        raise HTTPException(400, "Опишите, что нужно проверить")
-    try:
-        return await evaluator.draft_criterion(text, body.get("context") or "")
-    except RuntimeError as e:
-        raise HTTPException(502, str(e))
-
-
 @app.post("/api/checklists/{cid}/activate")
 def activate_checklist(cid: str):
     target = get_checklist(cid)

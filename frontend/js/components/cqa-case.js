@@ -77,7 +77,7 @@ class CqaCase extends HTMLElement {
 
   renderEmpty() {
     return `<div class="cqa-card cqa-card-b cqa-empty">
-      <p style="margin-top:0">Диалог ещё не оценён по чек-листу «${esc(this.active.name)}» v${this.active.version}.</p>
+      <p style="margin-top:0">Диалог ещё не оценён по чек-листу «${esc(this.active.name)}», версия ${this.active.version}.</p>
       <button class="cqa-btn primary" data-run>${icon.play} Оценить сейчас</button></div>`;
   }
 
@@ -101,13 +101,13 @@ class CqaCase extends HTMLElement {
         <div class="cqa-card-h">
           <h3>Результат оценки</h3>
           <select class="cqa-select" data-evsel style="height:28px;font-size:12px;margin-left:auto">
-            ${others.map((e) => `<option value="${e.id}" ${e.id === ev.id ? "selected" : ""}>v${this.verOf(e)} · ${timeAgo(e.created_at)} · ${fmtScore(e.total)}</option>`).join("")}
+            ${others.map((e) => `<option value="${e.id}" ${e.id === ev.id ? "selected" : ""}>версия ${this.verOf(e)} · ${timeAgo(e.created_at)} · ${fmtScore(e.total)}</option>`).join("")}
           </select>
           <button class="cqa-btn sm" data-gt title="Сохранить финальный результат как эталон для замера точности">${icon.check} В эталон</button>
           <button class="cqa-btn sm" data-run title="Переоценить по активному чек-листу">${icon.sync} Переоценить</button>
         </div>
         <div class="cqa-card-b">
-          ${stale ? `<div class="cqa-alert warn" style="margin-bottom:12px">${icon.alert}<div>Оценка сделана по версии v${cl.version}. Активна версия v${this.active.version} — нажмите «Переоценить», чтобы применить новый чек-лист.</div></div>` : ""}
+          ${stale ? `<div class="cqa-alert warn" style="margin-bottom:12px">${icon.alert}<div>Оценка сделана по версии ${cl.version} чек-листа. Активна версия ${this.active.version} — нажмите «Переоценить», чтобы применить новый чек-лист.</div></div>` : ""}
           <div class="cqa-summary">
             <div class="cqa-gauge">
               <svg width="150" height="150"><circle cx="75" cy="75" r="64" stroke="var(--line-2)" stroke-width="12" fill="none"/>
@@ -120,10 +120,6 @@ class CqaCase extends HTMLElement {
                 ${fr.passed == null ? "" : fr.passed ? `<span class="cqa-chip yes">Пройден · порог ${cl.pass_threshold}</span>` : `<span class="cqa-chip no">Не пройден · порог ${cl.pass_threshold}</span>`}
               </div>
               <div style="font-size:13.5px">${esc(ev.summary)}</div>
-              <div class="cqa-faint" style="font-size:12px;margin-top:6px">
-                ${esc(cl.name)} · v${cl.version} · ${esc(ev.model)}${ev.samples > 1 ? ` × ${ev.samples} прогона` : ""} · ${money(ev.cost_usd)} · ${ev.latency_s ?? "—"} с
-                ${ev.usage?.input_tokens ? ` · ${ev.usage.input_tokens + (ev.usage.cache_read_input_tokens || 0) + (ev.usage.cache_creation_input_tokens || 0)} вх. / ${ev.usage.output_tokens} вых. токенов` : ""} · ${timeAgo(ev.created_at)}
-              </div>
             </div>
           </div>
           <div class="cqa-steps">
@@ -145,19 +141,20 @@ class CqaCase extends HTMLElement {
             const v = answerView(c, f);
             const open = (ev.appeals || []).some((x) => x.criterion_id === c.id && x.status === "open");
             return `<tr data-jump="${esc(c.id)}" class="s-${markOf(c, f)}"><td class="n">${i + 1}</td>
-              <td>${esc(c.name)}${a.votes?.length > 1 && a.agreement < 1 ? `<span class="w" title="Прогоны разошлись: ${esc(a.votes.join(", "))}">⚠ ${Math.round(a.agreement * a.votes.length)}/${a.votes.length}</span>` : ""}
+              <td>${esc(c.name)}${a.votes?.length > 1 && a.agreement < 1 ? `<span class="w" title="Прогоны разошлись: ${esc(a.votes.join(", "))}">${icon.alert.replace("<svg", '<svg width="11" height="11"')} ${Math.round(a.agreement * a.votes.length)}/${a.votes.length}</span>` : ""}
                 ${ev.overrides?.[c.id] ? `<span class="cqa-chip na" style="height:18px;margin-left:6px">изменено</span>` : ""}${open ? `<span class="cqa-chip warn" style="height:18px;margin-left:6px">апелляция</span>` : ""}</td>
               <td class="a"><span class="cqa-chip ${v.cls}">${esc(v.label)}</span></td>
               <td class="p">${c.type === "flag" ? "—" : f.na ? "N/A" : `<b>${fmtScore(row.points)}</b> / ${fmtScore(row.effective_weight)}`}</td></tr>`;
           }).join("")}</table>
           ${ev.timing_facts?.length ? `<div class="cqa-alert info" style="margin-top:12px;padding:8px 12px"><div><b>Время ответа</b> (посчитано по меткам)
             ${ev.timing_facts.map((t) => `<div>${this.linkify(t)}</div>`).join("")}</div></div>` : ""}
-          ${ev.pii?.enabled ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">🔒 Персональные данные замаскированы перед отправкой в модель: ${
+          ${ev.pii?.enabled ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">${icon.lock.replace("<svg", '<svg width="12" height="12" style="vertical-align:-1px"')} Персональные данные замаскированы перед отправкой в модель: ${
             Object.entries(ev.pii.counts || {}).map(([k, n]) => `${esc(PII_LABEL[k] || k)} × ${n}`).join(", ") || "не найдено"}</summary>
             ${ev.pii.masked_turns?.length ? `<div style="margin:6px 0 0;font-size:12.5px">Так эти реплики увидела модель:</div>
             <ul style="margin:4px 0 0;font-size:12.5px">${ev.pii.masked_turns.map((t) => `<li>[${t.turn}] ${esc(t.text)}</li>`).join("")}</ul>` : ""}</details>` : ""}
           ${ev.warnings?.length ? `<details style="margin-top:10px"><summary class="cqa-muted" style="cursor:pointer;font-size:12.5px">Предупреждения валидации (${ev.warnings.length})</summary>
             <ul style="margin:6px 0 0;font-size:12.5px">${ev.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>` : ""}
+          <div class="cqa-faint" style="font-size:12px;margin-top:10px">Модель: ${esc(ev.model)} · стоимость оценки ${money(ev.cost_usd)} · ${timeAgo(ev.created_at)}</div>
         </div>
       </div>
       <div>${cl.criteria.map((c, i) => this.renderCrit(c, i)).join("")}</div>`;
