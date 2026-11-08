@@ -2,6 +2,7 @@
 
     python3 scripts/export_results.py DEV              → results/dev/results.json
     python3 scripts/export_results.py <group_id> prod  → results/prod/results.json
+    python3 scripts/export_results.py Swap swap        → results/swap/results.json
 
 Берёт данные у запущенного сервиса (CQA_API, по умолчанию http://127.0.0.1:8000).
 Пишет файл, даже если есть проблемы, и печатает их: диалоги с ошибкой попадают как status=error.
@@ -23,8 +24,8 @@ def main() -> int:
         return 2
     dataset = sys.argv[1]
     folder = sys.argv[2] if len(sys.argv) > 2 else ("dev" if dataset.upper() == "DEV" else "prod")
-    if folder not in ("dev", "prod"):
-        print("папка: dev или prod")
+    if folder not in ("dev", "prod", "swap"):
+        print("папка: dev, prod или swap")
         return 2
     url = f"{API}/api/results?dataset={urllib.parse.quote(dataset)}"
     with urllib.request.urlopen(url, timeout=60) as r:
