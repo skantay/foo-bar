@@ -718,7 +718,7 @@ def export(checklist_id: str | None = None, dataset: str | None = None, fmt: str
 # наши id критериев → коды организаторов
 OFFICIAL_CODE = {"needs": "discovery", "management": "dialogue", "closing": "closure", "gross_errors": "critical"}
 OFFICIAL_CODES = ["contact", "discovery", "identification", "consultation", "empathy", "dialogue", "closure", "critical"]
-TEAM_NAME = os.getenv("CQA_TEAM_NAME", "foo-bar")
+TEAM_NAME = os.getenv("CQA_TEAM_NAME", "TALAPKER")
 # допустимые value по Appendix Results: true/false, null = N/A, число = ступень шкалы
 _YN, _YNN = {True, False}, {True, False, None}
 OFFICIAL_VALUES = {"contact": _YN, "discovery": _YNN, "identification": _YNN, "consultation": {0, 5, 10, 15, 20, None},

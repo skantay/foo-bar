@@ -23,6 +23,7 @@ export async function mount(el, ctx, [selId], top) {
         <div class="c">«${esc(a.comment)}»</div>
         <div class="cqa-faint" style="font-size:11.5px;margin-top:4px"><span class="cqa-mono">${esc(a.dialog_id)}</span> · итог ${fmtScore(a.evaluation_total)} · ${timeAgo(a.created_at)}</div>
       </div>`).join("") || `<div class="cqa-empty">Апелляций нет.<br><span class="cqa-faint">Подать апелляцию можно в карточке диалога — кнопка «Оспорить критерий».</span></div>`;
+    el.firstElementChild.classList.toggle("empty", !list.length);
     if (!selId && list[0]) selId = list[0].id;
     if (selId && list.some((a) => a.id === selId)) {
       el.querySelectorAll(".cqa-ap-item").forEach((x) => x.classList.toggle("on", x.dataset.id === selId));
